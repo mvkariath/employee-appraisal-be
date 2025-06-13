@@ -24,6 +24,7 @@ export class PerformanceFactor extends AbstractEntity {
         enum: Competency,
         default: Competency.TECHNICAL
     })
+    competency: Competency
 
     @Column('text')
     strengths: string;

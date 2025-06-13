@@ -33,6 +33,12 @@ export class Appraisal extends AbstractEntity {
     })
     current_status: Status;
 
+    @Column({ length: 20 })
+    remarks_by: 'HR' | 'Lead';
+
+    @Column('text')
+    content: string;
+
     @Column({ type: 'timestamp', nullable: true })
     submitted_at: Date;
 
