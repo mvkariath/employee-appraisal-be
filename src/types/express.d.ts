@@ -1,9 +1,9 @@
-import { JwtPayload } from "../dto/jwt-payload";
+// import { JwtPayload } from "../dto/jwt-payload";
 
-declare global {
-    namespace Express {
-        interface Request {
-            user?: JwtPayload
-        }
-    }
-}
+// declare global {
+//     namespace Express {
+//         interface Request {
+//             user?: JwtPayload
+//         }
+//     }
+// }
