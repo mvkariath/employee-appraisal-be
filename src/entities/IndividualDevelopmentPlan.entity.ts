@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, ManyToOne
 import { Appraisal } from './Appraisal.entity';
 import Employee from './/employee.entity';
 import AbstractEntity from './abstract.entity';
+import { Exclude } from 'class-transformer';
 
 export enum IDP_Competency {
     TECHNICAL = "TECHNICAL",
@@ -12,7 +13,8 @@ export enum IDP_Competency {
 @Entity('individual_development_plan')
 export class IndividualDevelopmentPlan extends AbstractEntity {
 
-    @OneToOne(() => Appraisal)
+    @ManyToOne(() => Appraisal)
+    @Exclude()
     @JoinColumn({ name: 'appraisal_id' })
     appraisal: Appraisal;
 

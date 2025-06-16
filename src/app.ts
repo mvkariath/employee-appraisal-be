@@ -9,6 +9,7 @@ import cors from 'cors'
 import datasource from '../db/data-source';
 import appraisalCycleRouter from './routes/appraisalCycle.route';
 import appraisalRouter from './routes/appraisal.route';
+import selfAppraisalEntryRouter from './routes/selfAppraisal.route';
 
 const app = express();
 
@@ -20,8 +21,10 @@ app.use(express.json());
 app.use(loggerMiddleware);
 
 app.use("/employee", authMiddleware, employeeRouter);
-app.use("/appraisalCycle", authMiddleware, appraisalCycleRouter);
+app.use("/appraisal-cycle", authMiddleware, appraisalCycleRouter);
 app.use("/appraisal", authMiddleware, appraisalRouter);
+app.use("/self-appraisal", authMiddleware, selfAppraisalEntryRouter);
+
 
 
 app.use("/auth",authRouter)
