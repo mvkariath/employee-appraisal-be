@@ -8,11 +8,20 @@ import {
   IndividualDevelopmentPlan,
   IDP_Competency,
 } from "../entities/IndividualDevelopmentPlan.entity";
+import PerformanceFactorsRepository from "../repositories/perfomance-factors.repository";
+import PerformanceFactorService from "./perfomance-factors.services";
+import {
+  Competency,
+  PerformanceFactor,
+} from "../entities/PerformanceFactor.entity";
 
 class AppraisalService {
   private logger = LoggerService.getInstance("AppraisalService");
 
-  constructor(private appraisalRepository: AppraisalRepository) {}
+  constructor(
+    private appraisalRepository: AppraisalRepository,
+    private performanceFactorServices: PerformanceFactorService
+  ) {}
 
   async createAppraisals(data: {
     employeeIds: number[];
@@ -95,7 +104,21 @@ class AppraisalService {
     await this.appraisalRepository.update(id, existing);
     this.logger.info(`Appraisal updated: ${id}`);
   }
+  async pushToLead(appraisal: Appraisal): Promise<void> {
+    this.logger.info(`pushToLead - START: ID = ${appraisal.id}`);
+    for (let competency of Object.values(Competency)) {
+      const newPerformanceFactor = new PerformanceFactor();
+      newPerformanceFactor.appraisal = appraisal as Appraisal;
+      newPerformanceFactor.competency = competency;
+      newPerformanceFactor.strengths = "";
+      newPerformanceFactor.improvements = "";
+      newPerformanceFactor.rating = 0;
 
+      await this.performanceFactorServices.createPerformanceFactor(
+        newPerformanceFactor
+      );
+    }
+  }
   async deleteAppraisalById(id: number): Promise<void> {
     this.logger.info(`removeAppraisalById - START: ID = ${id}`);
     const existingAppraisal = await this.appraisalRepository.findById(id);

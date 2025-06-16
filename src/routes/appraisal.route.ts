@@ -5,16 +5,25 @@ import AppraisalRepository from "../repositories/appraisal.repository";
 import AppraisalService from "../services/appraisal.service";
 import AppraisalController from "../controllers/appraisal.controller";
 import { Appraisal } from "../entities/Appraisal.entity";
+import performanceFactorServices from "./performance-factors.route";
 
 const appraisalRouter = express.Router();
 
 // Repositories
-const appraisalRepository = new AppraisalRepository(datasource.getRepository(Appraisal));
+const appraisalRepository = new AppraisalRepository(
+  datasource.getRepository(Appraisal)
+);
 
 // Service
-const appraisalService = new AppraisalService(appraisalRepository);
+const appraisalService = new AppraisalService(
+  appraisalRepository,
+  performanceFactorServices
+);
 
 // Controller
-const appraisalController = new AppraisalController(appraisalService, appraisalRouter);
+const appraisalController = new AppraisalController(
+  appraisalService,
+  appraisalRouter
+);
 
 export default appraisalRouter;

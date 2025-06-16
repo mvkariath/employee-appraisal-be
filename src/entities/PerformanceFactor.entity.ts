@@ -27,10 +27,10 @@ export class PerformanceFactor extends AbstractEntity {
   })
   competency: Competency;
 
-  @Column("text")
+  @Column("text", { nullable: true })
   strengths: string;
 
-  @Column("text")
+  @Column("text", { nullable: true })
   improvements: string;
 
   @Column("int")
