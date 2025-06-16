@@ -1,29 +1,44 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { Appraisal } from './Appraisal.entity';
-import AbstractEntity from './abstract.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from "typeorm";
+import { Appraisal } from "./Appraisal.entity";
+import AbstractEntity from "./abstract.entity";
+import Employee from "./employee.entity";
+import { AppraisalLead } from "./AppraisalLead.entity";
 
-@Entity('self_appraisal_entries')
-export class SelfAppraisalEntry extends AbstractEntity{
-
+@Entity("self_appraisal_entries")
+export class SelfAppraisalEntry extends AbstractEntity {
   @ManyToOne(() => Appraisal)
-  @JoinColumn({ name: 'appraisal_id' })
+  @JoinColumn({ name: "appraisal_id" })
   appraisal: Appraisal;
 
-//   @Column()
-//   sn: number;
+  //   @Column()
+  //   sn: number;
 
-  @Column('text')
+  @Column("text")
   delivery_details: string;
 
-  @Column('text')
+  @Column("text")
   accomplishments: string;
 
-  @Column('text')
+  @Column("text")
   approach_solution: string;
 
-  @Column('text')
+  @Column("text")
   improvement_possibilities: string;
 
-  @Column('text')
+  @Column("text")
   project_time_frame: string;
+
+  //column for leads
+  @OneToMany(() => AppraisalLead, (appraisa) => .id, {
+    cascade: true,
+    eager: true,
+  })
+  leads: Employee[];
 }
