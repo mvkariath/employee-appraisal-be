@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 't
 import Employee from './employee.entity';
 import AppraisalCycle from './AppraisalCycle.entity';
 import AbstractEntity from './abstract.entity';
+import { IsOptional } from 'class-validator';
 
 export enum Status {
     NA = "N/A",
@@ -33,11 +34,13 @@ export class Appraisal extends AbstractEntity {
     })
     current_status: Status;
 
-    @Column({ length: 20 })
-    remarks_by: 'HR' | 'Lead';
+    @IsOptional()
+    @Column({ length: 20, nullable: true })
+    remarks_by?: 'HR' | 'Lead';
 
-    @Column('text')
-    content: string;
+    @IsOptional()
+    @Column('text', { nullable: true })
+    content?: string;
 
     @Column({ type: 'timestamp', nullable: true })
     submitted_at: Date;
