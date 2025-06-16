@@ -8,6 +8,7 @@ import HttpException from "../exceptions/httpExceptions";
 import { checkRole } from "../middlewares/authorization.middleware";
 import { EmployeeRole } from "../entities/employee.entity";
 import { UpdateAppraisalCycleDto } from "../dto/update-appraisalCycle.dto";
+import { auditLogMiddleware } from "../middlewares/auditLog.middleware";
 
 class AppraisalCycleController {
     private logger = LoggerService.getInstance("AppraisalCycleController");
@@ -16,7 +17,7 @@ class AppraisalCycleController {
         router.post("/", checkRole([EmployeeRole.HR]), this.createAppraisalCycle.bind(this));
         router.get("/", this.getAllAppraisalCycles.bind(this));
         router.get("/:id", this.getAppraisalCycleById.bind(this));
-        router.put("/:id", checkRole([EmployeeRole.HR]),this.updateCycle.bind(this));
+        router.put("/:id", checkRole([EmployeeRole.HR]),auditLogMiddleware,this.updateCycle.bind(this));
         router.delete("/:id", checkRole([EmployeeRole.HR]), this.removeAppraisalCycle.bind(this));
     }
 
