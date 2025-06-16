@@ -1,6 +1,5 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   JoinColumn,
@@ -8,7 +7,6 @@ import {
 } from "typeorm";
 import { Appraisal } from "./Appraisal.entity";
 import AbstractEntity from "./abstract.entity";
-import Employee from "./employee.entity";
 import { AppraisalLead } from "./AppraisalLead.entity";
 
 @Entity("self_appraisal_entries")
@@ -16,9 +14,6 @@ export class SelfAppraisalEntry extends AbstractEntity {
   @ManyToOne(() => Appraisal)
   @JoinColumn({ name: "appraisal_id" })
   appraisal: Appraisal;
-
-  //   @Column()
-  //   sn: number;
 
   @Column("text")
   delivery_details: string;
@@ -34,11 +29,4 @@ export class SelfAppraisalEntry extends AbstractEntity {
 
   @Column("text")
   project_time_frame: string;
-
-  //column for leads
-  @OneToMany(() => AppraisalLead, (appraisa) => .id, {
-    cascade: true,
-    eager: true,
-  })
-  leads: Employee[];
 }
