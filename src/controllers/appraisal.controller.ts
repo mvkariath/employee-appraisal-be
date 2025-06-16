@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { plainToInstance } from "class-transformer";
+import { instanceToPlain, plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 
 import AppraisalService from "../services/appraisal.service";
@@ -41,7 +41,7 @@ class AppraisalController {
             });
 
             this.logger.info(`createAppraisals - SUCCESS`);
-            res.status(201).json(created);
+            res.status(201).json(instanceToPlain(created));
         } catch (error) {
             this.logger.error("createAppraisals - FAILED" + error);
             next(error);

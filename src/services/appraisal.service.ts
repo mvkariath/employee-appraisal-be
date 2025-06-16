@@ -4,47 +4,64 @@ import httpException from "../exceptions/httpExceptions";
 import { LoggerService } from "./logger.service";
 import AppraisalCycle from "../entities/AppraisalCycle.entity";
 import Employee from "../entities/employee.entity";
+import { IndividualDevelopmentPlan, IDP_Competency } from '../entities/IndividualDevelopmentPlan.entity';
+
 
 class AppraisalService {
     private logger = LoggerService.getInstance('AppraisalService');
 
     constructor(private appraisalRepository: AppraisalRepository) {}
 
-   async createAppraisals(data: {
-    employeeIds: number[];
-    cycle: AppraisalCycle;
-    content?: string;
-    remarks_by?: 'HR' | 'Lead';
-    current_status?: Status;
-    submitted_at?: Date;
-    closed_at?: Date;
+
+async createAppraisals(data: {
+  employeeIds: number[];
+  cycle: AppraisalCycle;
+  content?: string;
+  remarks_by?: 'HR' | 'Lead';
+  current_status?: Status;
+  submitted_at?: Date;
+  closed_at?: Date;
 }): Promise<Appraisal[]> {
-    this.logger.info('createAppraisals - START');
+  this.logger.info('createAppraisals - START');
 
-    if (!data.employeeIds || data.employeeIds.length === 0 || !data.cycle) {
-        this.logger.error('Invalid appraisal data - missing required fields');
-        throw new httpException(400, 'Missing required fields');
-    }
+  if (!data.employeeIds || data.employeeIds.length === 0 || !data.cycle) {
+    this.logger.error('Invalid appraisal data - missing required fields');
+    throw new httpException(400, 'Missing required fields');
+  }
 
-    const createdAppraisals: Appraisal[] = [];
+  const createdAppraisals: Appraisal[] = [];
 
-    for (const employeeId of data.employeeIds) {
-        const appraisal = new Appraisal();
-        appraisal.employee = { id: employeeId } as Employee; // Minimal employee reference
-        appraisal.cycle = data.cycle;
-        appraisal.content = data.content || null;
-        appraisal.remarks_by = data.remarks_by || null;
-        appraisal.current_status = data.current_status ?? Status.NA;
-        appraisal.submitted_at = data.submitted_at ?? null;
-        appraisal.closed_at = data.closed_at ?? null;
+  for (const employeeId of data.employeeIds) {
+    const appraisal = new Appraisal();
+    appraisal.employee = { id: employeeId } as Employee;
+    appraisal.cycle = data.cycle;
+    appraisal.content = data.content || null;
+    appraisal.remarks_by = data.remarks_by || null;
+    appraisal.current_status = data.current_status ?? Status.NA;
+    appraisal.submitted_at = data.submitted_at ?? null;
+    appraisal.closed_at = data.closed_at ?? null;
 
-        const created = await this.appraisalRepository.create(appraisal);
-        createdAppraisals.push(created);
-    }
+    // ✅ Create empty IDPs for each competency
+    const idps: IndividualDevelopmentPlan[] = Object.values(IDP_Competency).map((competency) => {
+      const idp = new IndividualDevelopmentPlan();
+      idp.competency = competency;
+      idp.technical_objective = ''; // start empty
+      idp.technical_plan=''
+      idp.appraisal = appraisal;
+      return idp;
+    });
 
-    this.logger.info(`createAppraisals - SUCCESS: Created ${createdAppraisals.length} appraisals`);
-    return createdAppraisals;
+    appraisal.idp = idps;
+
+    // 💾 Save appraisal and cascade IDPs
+    const savedAppraisal = await this.appraisalRepository.create(appraisal);
+    createdAppraisals.push(savedAppraisal);
+  }
+
+  this.logger.info(`createAppraisals - SUCCESS: Created ${createdAppraisals.length} appraisals`);
+  return createdAppraisals;
 }
+
 
     async getAllAppraisals(): Promise<Appraisal[]> {
         this.logger.info('getAllAppraisals - START');

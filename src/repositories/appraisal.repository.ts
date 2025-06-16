@@ -9,11 +9,11 @@ class AppraisalRepository {
     }
 
     async findAll(): Promise<Appraisal[]> {
-        return this.repository.find({ relations: ['employee', 'cycle'] });
+        return this.repository.find({ relations: ['employee', 'cycle','idp'] });
     }
 
     async findById(id: number): Promise<Appraisal | null> {
-        return this.repository.findOne({ where: { id }, relations: ['employee', 'cycle'] });
+        return this.repository.findOne({ where: { id }, relations: ['employee', 'cycle','idp'] });
     }
 
     async findByEmployeeId(employeeId: number): Promise<Appraisal[]> {
