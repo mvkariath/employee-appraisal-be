@@ -28,7 +28,7 @@ export class IndividualDevelopmentPlan extends AbstractEntity {
     objective: string;
 
     @Column('text')
-    development_plan: [string];
+    development_plan: string[];
 
 
     @ManyToOne(() => Employee)

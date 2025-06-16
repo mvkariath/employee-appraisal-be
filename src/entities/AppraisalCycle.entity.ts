@@ -26,7 +26,7 @@ class AppraisalCycle extends AbstractEntity {
         enum: Status,
         default: Status.INITIATED
     })
-    status = Status
+    status : Status
 
     @ManyToOne(() => Employee)
     @JoinColumn({ name: 'created_by' })

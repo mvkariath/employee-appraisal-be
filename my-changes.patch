@@ -1,0 +1,62 @@
+diff --git a/src/app.ts b/src/app.ts
+index dbb7f26..0df3e08 100644
+--- a/src/app.ts
++++ b/src/app.ts
+@@ -9,6 +9,7 @@ import cors from 'cors'
+ import datasource from '../db/data-source';
+ import appraisalCycleRouter from './routes/appraisalCycle.route';
+ import appraisalRouter from './routes/appraisal.route';
++import leadsRouter from './routes/leads.routes';
+ 
+ const app = express();
+ 
+@@ -22,7 +23,7 @@ app.use(loggerMiddleware);
+ app.use("/employee", authMiddleware, employeeRouter);
+ app.use("/appraisalCycle", authMiddleware, appraisalCycleRouter);
+ app.use("/appraisal", authMiddleware, appraisalRouter);
+-
++app.use("/lead", authMiddleware, leadsRouter);
+ 
+ app.use("/auth",authRouter)
+ 
+@@ -43,8 +44,8 @@ app.get('/', (req: Request, res: Response) => {
+     logger.error(`Failed to connect to DB - ${error}`);
+     process.exit(1);
+   }
+-  app.listen(3000, () => {
+-    logger.info("server listening to 3000");
++  app.listen(4000, () => {
++    logger.info("server listening to 4000");
+   });
+ 
+ })();
+diff --git a/src/entities/IndividualDevelopmentPlan.entity.ts b/src/entities/IndividualDevelopmentPlan.entity.ts
+index 72d1676..d9c025b 100644
+--- a/src/entities/IndividualDevelopmentPlan.entity.ts
++++ b/src/entities/IndividualDevelopmentPlan.entity.ts
+@@ -25,10 +25,10 @@ export class IndividualDevelopmentPlan extends AbstractEntity {
+ 
+ 
+     @Column('text')
+-    technical_objective: string;
++    objective: string;
+ 
+     @Column('text')
+-    technical_plan: string;
++    development_plan: string[];
+ 
+ 
+     @ManyToOne(() => Employee)
+diff --git a/src/services/employee.service.ts b/src/services/employee.service.ts
+index 4703919..04c37f1 100644
+--- a/src/services/employee.service.ts
++++ b/src/services/employee.service.ts
+@@ -14,7 +14,7 @@ class EmployeeService {
+     async createEmployee(employeeDto: CreateEmployeeDto): Promise<Employee> {
+         
+         const {employeeId,email, name, age, role, password,experience,status,dateOfJoining} = employeeDto;
+-
++ 
+ 
+         this.logger.info('createEmployee - START');
+         const newEmployee = new Employee();
