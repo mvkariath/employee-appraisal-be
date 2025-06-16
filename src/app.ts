@@ -32,6 +32,7 @@ app.use("/auth",authRouter)
 
 app.use(errorHandlineMiddleware)
 
+
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello from TypeScript + Express!');
 });

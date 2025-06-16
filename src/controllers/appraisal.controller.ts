@@ -7,6 +7,7 @@ import { LoggerService } from "../services/logger.service";
 import HttpException from "../exceptions/httpExceptions";
 import { checkRole } from "../middlewares/authorization.middleware";
 import { EmployeeRole } from "../entities/employee.entity";
+import { auditLogMiddleware } from "../middlewares/auditLog.middleware";
 
 class AppraisalController {
   private logger = LoggerService.getInstance("AppraisalController");
@@ -35,6 +36,7 @@ class AppraisalController {
       this.deleteAppraisal.bind(this)
     );
   }
+
 
   async createAppraisals(req: Request, res: Response, next: NextFunction) {
     try {

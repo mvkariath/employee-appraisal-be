@@ -9,6 +9,7 @@ import { EmployeeRole } from "../entities/employee.entity";
 import { UpdateEmployeeDto } from "../dto/update-employee.dto";
 import { LoggerService } from "../services/logger.service";
 import { error } from "winston";
+import { auditLogMiddleware } from "../middlewares/auditLog.middleware";
 
 class EmployeeController {
     private logger = LoggerService.getInstance('EmployeeController');
@@ -17,7 +18,7 @@ class EmployeeController {
         router.post("/",checkRole([EmployeeRole.HR]), this.createEmployee.bind(this));
         router.get("/", this.getAllEmployees.bind(this));
         router.get("/:id", this.getEmployeeById.bind(this));
-        router.put("/:id", checkRole([EmployeeRole.HR]),this.updateEmployee.bind(this));
+        router.put("/:id", checkRole([EmployeeRole.HR]), auditLogMiddleware,this.updateEmployee.bind(this));
         router.delete("/:id", checkRole([EmployeeRole.HR,EmployeeRole.DEVELOPER]), this.removeEmployee.bind(this));
     }
 
