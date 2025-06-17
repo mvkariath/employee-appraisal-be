@@ -2,7 +2,7 @@ import { Repository } from "typeorm";
 import { SelfAppraisalEntry } from "../entities/SelfAppraisal.entity";
 
 class SelfAppraisalEntryRepository {
-  constructor(private repository: Repository<SelfAppraisalEntry>) {}
+  constructor(private repository: Repository<SelfAppraisalEntry>) { }
 
   async create(entry: SelfAppraisalEntry): Promise<SelfAppraisalEntry> {
     return this.repository.save(entry);
@@ -10,14 +10,21 @@ class SelfAppraisalEntryRepository {
 
   async findMany(): Promise<SelfAppraisalEntry[]> {
     return this.repository.find({
-     relations: ["appraisal", "appraisal.appraisalLeads", "appraisal.appraisalLeads.lead"]
+      relations: ["appraisal", "appraisal.appraisalLeads", "appraisal.appraisalLeads.lead"]
+    });
+  }
+
+  async findByAppraisalId(id: number): Promise<SelfAppraisalEntry | null> {
+    return this.repository.findOne({
+      where: { appraisal: { id: id } },
+      relations: ["appraisal", "appraisal.appraisalLeads", "appraisal.appraisalLeads.lead"]
     });
   }
 
   async findById(id: number): Promise<SelfAppraisalEntry | null> {
     return this.repository.findOne({
       where: { id },
-     relations: ["appraisal", "appraisal.appraisalLeads", "appraisal.appraisalLeads.lead"]
+      relations: ["appraisal", "appraisal.appraisalLeads", "appraisal.appraisalLeads.lead"]
     });
   }
 

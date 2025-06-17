@@ -52,26 +52,28 @@ class SelfAppraisalEntryService {
   }
 
   async getEntryById(id: number): Promise<SelfAppraisalEntry> {
-    const entry = await this.selfAppraisalEntryRepo.findById(id);
+    const entry = await this.selfAppraisalEntryRepo.findByAppraisalId(id);
     if (!entry) {
       throw new httpException(404, "Self Appraisal Entry not found");
     }
     return entry;
   }
 
-  async updateEntry(
+async updateEntry(
   id: number,
   data: Partial<SelfAppraisalEntry> & { leadIds?: number[] }
 ): Promise<void> {
-  const existing = await this.selfAppraisalEntryRepo.findById(id);
+  let existing = await this.selfAppraisalEntryRepo.findByAppraisalId(id);
+
   if (!existing) {
-    throw new httpException(404, "Self Appraisal Entry not found");
+    await this.createSelfAppraisal(data as CreateSelfAppraisalDto);
+    return;
   }
 
   Object.assign(existing, data);
   await this.selfAppraisalEntryRepo.update(id, existing);
+  
 
-  // If leadIds are provided, update AppraisalLead entries
   if (data.leadIds && data.leadIds.length > 0) {
     const appraisalId = existing.appraisal.id;
 
