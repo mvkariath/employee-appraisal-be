@@ -4,7 +4,7 @@ import { LoggerService } from "./logger.service";
 import httpException from "../exceptions/httpExceptions";
 import { CreateAppraisalCycleDto } from "../dto/create-appraisalCycle.dto";
 import { UpdateAppraisalCycleDto } from "../dto/update-appraisalCycle.dto";
-import { PerformanceFactor } from "../entities/PerformanceFactor.entity";
+import { Competency, PerformanceFactor } from "../entities/PerformanceFactor.entity";
 import PerformanceFactorsRepository from "../repositories/perfomance-factors.repository";
 // import { UpdateAppraisalCycleDto } from "../dto/update-appraisal-cycle.dto";
 
@@ -39,6 +39,34 @@ class PerformanceFactorService {
     );
     return created;
   }
+   async updatePerformanceFactor(
+    appraisalId: number,
+    competency: Competency,
+    updates: {
+      strengths?: string;
+      improvements?: string;
+      rating?: number;
+    }
+  ) {
+    const existing = await this.performanceFactorRepository.findByAppraisalId(appraisalId,competency);
+
+    if (!existing) {
+      throw new httpException(401,`PerformanceFactor not found for competency: ${competency}`);
+    }
+
+    
+      existing.strengths = updates.strengths || existing.strengths;
+    
+  
+      existing.improvements = updates.improvements || existing.improvements;
+    
+ 
+      existing.rating = updates.rating || existing.rating;
+    
+
+    return (await this.performanceFactorRepository.update(existing.id, existing));
+  }
 }
+
 
 export default PerformanceFactorService;

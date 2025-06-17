@@ -9,6 +9,7 @@ import { Appraisal } from "../entities/Appraisal.entity";
 import PerformanceFactorService from "../services/perfomance-factors.services";
 import PerformanceFactorsRepository from "../repositories/perfomance-factors.repository";
 import { PerformanceFactor } from "../entities/PerformanceFactor.entity";
+import PerformanceController from "../controllers/performance.controller";
 
 const appraisalRouter = express.Router();
 
@@ -21,5 +22,6 @@ const performanceFactorsRepository = new PerformanceFactorsRepository(
 const performanceFactorServices = new PerformanceFactorService(
   performanceFactorsRepository
 );
-
+const performanceFacrorController = new PerformanceController(performanceFactorServices, appraisalRouter);
+export {appraisalRouter as performanceFactorsRouter};
 export default performanceFactorServices;

@@ -119,6 +119,7 @@ class AppraisalService {
       );
     }
   }
+ 
   async deleteAppraisalById(id: number): Promise<void> {
     this.logger.info(`removeAppraisalById - START: ID = ${id}`);
     const existingAppraisal = await this.appraisalRepository.findById(id);

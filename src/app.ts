@@ -12,6 +12,7 @@ import appraisalRouter from './routes/appraisal.route';
 import selfAppraisalEntryRouter from './routes/selfAppraisal.route';
 import auditLogRouter from './routes/auditLog.route';
 
+import { performanceFactorsRouter } from './routes/performance-factors.route';
 const app = express();
 
 app.use(express.json());
@@ -27,6 +28,7 @@ app.use("/appraisal", authMiddleware, appraisalRouter);
 app.use("/self-appraisal", authMiddleware, selfAppraisalEntryRouter);
 app.use("/audit-log", auditLogRouter);
 
+app.use("/performance-factors", authMiddleware,performanceFactorsRouter);
 
 
 app.use("/auth",authRouter)

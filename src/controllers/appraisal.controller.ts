@@ -96,6 +96,7 @@ class AppraisalController {
       next(error);
     }
   }
+  
   async getAppraisalById(req: Request, res: Response, next: NextFunction) {
     try {
       const id = Number(req.params.id);
