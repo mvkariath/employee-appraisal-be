@@ -2,6 +2,8 @@ import { Router } from "express";
 import PerformanceFactorService from "../services/perfomance-factors.services";
 import  { Request,Response } from "express";
 import { auditLogMiddleware } from "../middlewares/auditLog.middleware";
+import { checkRole } from "../middlewares/authorization.middleware";
+import { EmployeeRole } from "../entities/employee.entity";
 class PerformanceController{
     constructor(private performanceService:PerformanceFactorService, router: Router) {
        

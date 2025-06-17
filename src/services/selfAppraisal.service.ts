@@ -58,7 +58,9 @@ class SelfAppraisalEntryService {
     }
     return entry;
   }
-
+    async findAllAppraisalsByLeadId(leadId: number) {
+        return this.appraisalLeadRepo.findAllAppraisalsByLeadId(leadId);
+    }
 async updateEntry(
   id: number,
   data: Partial<SelfAppraisalEntry> & { leadIds?: number[] }

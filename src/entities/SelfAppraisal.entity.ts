@@ -14,6 +14,7 @@ export class SelfAppraisalEntry extends AbstractEntity {
   @ManyToOne(() => Appraisal)
   @JoinColumn({ name: "appraisal_id" })
   appraisal: Appraisal;
+  
 
   @Column("text")
   delivery_details: string;

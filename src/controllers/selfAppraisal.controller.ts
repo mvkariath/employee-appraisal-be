@@ -17,12 +17,18 @@ class SelfAppraisalEntryController {
     private selfAppraisalEntryService: SelfAppraisalEntryService,
     router: Router
   ) {
-    router.post(
+    // router.post(
+    //   "/",
+    //   checkRole([EmployeeRole.HR, EmployeeRole.LEAD]),
+    //   this.createSelfAppraisal.bind(this)
+    // );
+        router.post(
       "/",
-      checkRole([EmployeeRole.HR, EmployeeRole.LEAD]),
+    
       this.createSelfAppraisal.bind(this)
     );
     router.get("/", this.getAllEntries.bind(this));
+    router.get("/get-appraisals-of-lead/:leadId",checkRole([EmployeeRole.LEAD]),this.getAllAppraisalsByLeadId.bind(this));
     router.get("/:id", this.getEntryById.bind(this));
     router.put("/:id", checkRole([EmployeeRole.HR]), this.updateEntry.bind(this));
     router.delete("/:id", checkRole([EmployeeRole.HR]), this.deleteEntry.bind(this));
@@ -87,7 +93,19 @@ class SelfAppraisalEntryController {
     next(error);
   }
 }
-
+  async getAllAppraisalsByLeadId(req: any, res: any) {
+        const leadId = parseInt(req.params.leadId, 10);
+        if (isNaN(leadId)) {
+            return res.status(400).json({ error: "Invalid lead ID" });
+        }
+        try {
+            const appraisals = await this.selfAppraisalEntryService.findAllAppraisalsByLeadId(leadId);
+            return res.status(200).json(appraisals);
+        } catch (error) {
+            console.error("Error fetching appraisals:", error);
+            return res.status(500).json({ error: "Internal server error" });
+        }
+    }
 
   async deleteEntry(req: Request, res: Response, next: NextFunction) {
     try {
