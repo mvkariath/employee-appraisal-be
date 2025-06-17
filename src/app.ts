@@ -10,6 +10,7 @@ import datasource from '../db/data-source';
 import appraisalCycleRouter from './routes/appraisalCycle.route';
 import appraisalRouter from './routes/appraisal.route';
 import selfAppraisalEntryRouter from './routes/selfAppraisal.route';
+import auditLogRouter from './routes/auditLog.route';
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use("/employee", authMiddleware, employeeRouter);
 app.use("/appraisal-cycle", authMiddleware, appraisalCycleRouter);
 app.use("/appraisal", authMiddleware, appraisalRouter);
 app.use("/self-appraisal", authMiddleware, selfAppraisalEntryRouter);
+app.use("/audit-log", auditLogRouter);
 
 
 

@@ -9,11 +9,11 @@ import { UpdateEmployeeDto } from "../dto/update-employee.dto";
 class EmployeeService {
     private logger = LoggerService.getInstance('EmployeeService');
 
-    constructor(private employeeRepository: EmployeeRepository) {}
+    constructor(private employeeRepository: EmployeeRepository) { }
 
     async createEmployee(employeeDto: CreateEmployeeDto): Promise<Employee> {
-        
-        const {employeeId,email, name, age, role, password,experience,status,dateOfJoining} = employeeDto;
+
+        const { employeeId, email, name, age, role, password, experience, status, dateOfJoining } = employeeDto;
 
 
         this.logger.info('createEmployee - START');
@@ -36,22 +36,26 @@ class EmployeeService {
         return createdEmployee;
     }
 
-    async getAllEmployees(): Promise<Employee[]> {
-        this.logger.info('getAllEmployees - START');
+    async getAllEmployees(): Promise<Omit<Employee, "password">[]> {
+        this.logger.info("getAllEmployees - START");
         const employees = await this.employeeRepository.findMany();
-        this.logger.info(`getAllEmployees - SUCCESS: Retrieved ${employees.length} employees`);
-        return employees;
+
+        const sanitized = employees.map(({ password, ...rest }) => rest);
+        this.logger.info(`getAllEmployees - SUCCESS: Retrieved ${sanitized.length} employees`);
+
+        return sanitized;
     }
+
 
     async getEmployeeById(id: number): Promise<Employee | null> {
         this.logger.info(`getEmployeeById - START: ID = ${id}`);
         const employee = await this.employeeRepository.findById(id);
         if (!employee) {
             this.logger.error(`getEmployeeById - FAILED: Employee with ID ${id} not found`);
-            throw new httpException(404,"Employee not found");
+            throw new httpException(404, "Employee not found");
         }
         this.logger.info(`getEmployeeById - SUCCESS: Found employee with ID ${id}`);
-        const {password, ...employeeDataWithoutPassword} = employee;
+        const { password, ...employeeDataWithoutPassword } = employee;
 
         return employeeDataWithoutPassword;
     }
@@ -67,22 +71,22 @@ class EmployeeService {
         return employee;
     }
 
-    async updateEmployeeById(id: number, updateEmployeeDto?:UpdateEmployeeDto): Promise<void> {
+    async updateEmployeeById(id: number, updateEmployeeDto?: UpdateEmployeeDto): Promise<void> {
         this.logger.info(`updateEmployeeById - START: ID = ${id}`);
         const existingEmployee = await this.employeeRepository.findById(id);
 
         if (existingEmployee) {
             this.logger.debug(`updateEmployeeById - Found employee with ID ${id}, updating fields`);
 
-            const {employeeId,email, name, age, role, password,experience,status,dateOfJoining} = updateEmployeeDto;
+            const { employeeId, email, name, age, role, password, experience, status, dateOfJoining } = updateEmployeeDto;
 
-            
+
             existingEmployee.employeeId = employeeId || existingEmployee.employeeId;
             existingEmployee.name = name || existingEmployee.name;
             existingEmployee.email = email || existingEmployee.email;
             existingEmployee.age = age || existingEmployee.age;
             existingEmployee.role = role || existingEmployee.role;
-            existingEmployee.password = password && password!=='' ? await bcrypt.hash(password, 10) : existingEmployee.password;
+            existingEmployee.password = password && password !== '' ? await bcrypt.hash(password, 10) : existingEmployee.password;
             existingEmployee.experience = experience || existingEmployee.experience;
             existingEmployee.status = status || existingEmployee.status;
             existingEmployee.dateOfJoining = dateOfJoining || existingEmployee.dateOfJoining;
@@ -91,7 +95,7 @@ class EmployeeService {
             this.logger.info(`updateEmployeeById - SUCCESS: Updated employee with ID ${id}`);
         } else {
             this.logger.error(`updateEmployeeById - FAILED: Employee with ID ${id} not found`);
-            throw new httpException(400,`Employee with ID ${id} not found`);
+            throw new httpException(400, `Employee with ID ${id} not found`);
         }
     }
 
@@ -103,7 +107,7 @@ class EmployeeService {
             this.logger.info(`removeEmployeeById - SUCCESS: Removed employee with ID ${id}`);
         } else {
             this.logger.error(`removeEmployeeById - NOT FOUND: Employee with ID ${id}`);
-            throw new httpException(400,"Invalid employee ID");
+            throw new httpException(400, "Invalid employee ID");
         }
     }
 }
