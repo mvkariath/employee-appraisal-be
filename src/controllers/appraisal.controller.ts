@@ -39,7 +39,6 @@ class AppraisalController {
     );
   }
 
-
   async createAppraisals(req: Request, res: Response, next: NextFunction) {
     try {
       const {
@@ -107,6 +106,7 @@ class AppraisalController {
       next(error);
     }
   }
+<<<<<<< Updated upstream
   
   async getAppraisalById(req: Request, res: Response, next: NextFunction) {
     try {
@@ -119,6 +119,19 @@ class AppraisalController {
       next(error);
     }
   }
+=======
+  // async getAppraisalById(req: Request, res: Response, next: NextFunction) {
+  //   try {
+  //     const id = Number(req.params.id);
+  //     if (isNaN(id)) throw new HttpException(400, "Invalid appraisal ID");
+  //     const appraisal = await this.appraisalService.getAppraisalById(id);
+  //     res.status(200).json(appraisal);
+  //   } catch (error) {
+  //     this.logger.error("getAppraisalById - FAILED" + error);
+  //     next(error);
+  //   }
+  // }
+>>>>>>> Stashed changes
 
   async updateAppraisal(req: Request, res: Response, next: NextFunction) {
     try {
@@ -143,6 +156,22 @@ class AppraisalController {
       res.status(200).json({ message: "Appraisal deleted successfully" });
     } catch (error) {
       this.logger.error("deleteAppraisal - FAILED" + error);
+      next(error);
+    }
+  }
+  async getAppraisalById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const appraisalId = Number(req.params.id);
+      if (isNaN(appraisalId))
+        throw new HttpException(400, "Invalid appraisal ID");
+
+      const appraisalForm = await this.appraisalService.fetchFormData(
+        appraisalId,
+        req.user.role
+      );
+      res.status(200).json(appraisalForm);
+    } catch (error) {
+      this.logger.error("getAppraisalForm - FAILED" + error);
       next(error);
     }
   }

@@ -142,6 +142,40 @@ class AppraisalService {
       throw new httpException(400, "Invalid appraisal ID");
     }
   }
+
+  async fetchFormData(appraisalId: number, userRole: string) {
+    const appraisal = await this.appraisalRepository.findById(appraisalId); // includes idp, performance_factors, etc.
+
+    if (!appraisal) {
+      throw new Error(`Appraisal with id ${appraisalId} not found`);
+    }
+
+    const isHR = userRole === "HR";
+    const isLead = userRole === "LEAD";
+    const isDev = userRole === "DEVELOPER";
+
+    if (isHR) {
+      return appraisal; // HR sees everything
+    }
+
+    const result: any = {
+      id: appraisal.id,
+      current_status: appraisal.current_status,
+      employee: appraisal.employee,
+      cycle: appraisal.cycle,
+    };
+
+    if (isDev) {
+      result.self_appraisal = appraisal.self_appraisal;
+    }
+
+    if (isLead && appraisal.current_status === "FEEDBACK_SUBMITTED") {
+      result.self_appraisal = appraisal.self_appraisal;
+      result.performance_factors = appraisal.performance_factors;
+    }
+
+    return result;
+  }
 }
 
 export default AppraisalService;
