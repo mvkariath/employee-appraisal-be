@@ -17,6 +17,7 @@ import {
 import diffArrayById from "../utils/deepDiff";
 import SelfAppraisalEntryService from "./selfAppraisal.service";
 import { IDPService } from "./idp.services";
+import CreateSelfAppraisalDto from "../dto/create-selfAppraisal.dto";
 function getAllowedFieldsForRole(role: string, status: string): string[] {
   const rules = {
     HR: ["idp", "self_appraisal", "performance_factors"],
@@ -102,15 +103,15 @@ class AppraisalService {
     this.logger.info("getAllAppraisals - START");
     return await this.appraisalRepository.findAll();
   }
-  async getPastAppraisals(employeeId: number): Promise<Appraisal[] | null> {
+  async getPastAppraisals(id: number): Promise<Appraisal[] | null> {
     this.logger.info(
-      `getPastAppraisals - START for employee ID: ${employeeId}`
+      `getPastAppraisals - START for employee ID: ${id}`
     );
-    if (!employeeId) {
+    if (!id) {
       this.logger.error("Invalid employee ID");
       throw new httpException(400, "Invalid employee ID");
     }
-    return await this.appraisalRepository.findPastAppraisal(employeeId);
+    return await this.appraisalRepository.findPastAppraisal(id);
   }
   async getAppraisalById(id: number): Promise<Appraisal> {
     this.logger.info(`getAppraisalById - ID: ${id}`);
@@ -122,6 +123,40 @@ class AppraisalService {
     return appraisal;
   }
 
+ async getAppraisalByCycleId(id: number): Promise<{ appraisalId: number; employee: Employee }[]> {
+  this.logger.info(`getAppraisalById - ID: ${id}`);
+  
+  const appraisals = await this.appraisalRepository.findByCycleId(id);
+
+  if (!appraisals) {
+    this.logger.error("Appraisal not found");
+    throw new httpException(404, "Appraisal not found");
+  }
+
+  const result = appraisals.map((appraisal) => ({
+    appraisalId: appraisal.id,
+    employee: appraisal.employee,
+  }));
+
+  return result; 
+}
+
+
+  async updateAppraisalById(
+    id: number,
+    data: Partial<Appraisal>
+  ): Promise<void> {
+    this.logger.info(`updateAppraisalById - ID: ${id}`);
+    const existing = await this.appraisalRepository.findById(id);
+    if (!existing) {
+      this.logger.error("Appraisal not found");
+      throw new httpException(404, "Appraisal not found");
+    }
+
+    Object.assign(existing, data);
+    await this.appraisalRepository.update(id, existing);
+    this.logger.info(`Appraisal updated: ${id}`);
+  }
   async pushToLead(appraisal: Appraisal): Promise<void> {
     this.logger.info(`pushToLead - START: ID = ${appraisal.id}`);
     for (let competency of Object.values(Competency)) {
@@ -160,6 +195,7 @@ class AppraisalService {
     incomingData: Partial<Appraisal>
   ) {
     const existing = await this.appraisalRepository.findById(appraisalId);
+    const leadIds = existing.appraisalLeads?.map((lead) => lead.lead.id) || [];
     if (!existing) throw new Error("Appraisal not found");
 
     // Authorization check (assumes same logic as fetchFormData)
@@ -214,21 +250,20 @@ class AppraisalService {
           );
         }
         // Create new self appraisals
-        if (toCreate.length > 0) {
-          this.logger.info(`Creating ${toCreate.length} new self appraisals`);
-          for (const entry of toCreate) {
-            const newEntry =
-              await this.selfAppraisalService.createSelfAppraisal(
-                entry as any // Assuming entry is compatible with CreateSelfAppraisalDto
-              );
-            this.logger.info(`Created Self Appraisal Entry ID: ${newEntry.id}`);
-          }
-        }
+       if (toCreate.length > 0) {
+      const createPayload = toCreate.map(entry => ({
+        ...entry,
+        appraisalId,
+      })) as CreateSelfAppraisalDto[];
+
+      await this.selfAppraisalService.createMultipleSelfAppraisals(createPayload,leadIds);
+      this.logger.info(`Created ${toCreate.length} self appraisal entries`);
+    }
         // Update existing self appraisals
         if (toUpdate.length > 0) {
           this.logger.info(`Updating ${toUpdate.length} self appraisals`);
           for (const entry of toUpdate) {
-            const updatedEntry = await this.selfAppraisalService.updateEntry(
+            const updatedEntry = await this.selfAppraisalService.updateEntryByAppraisalId(
               entry.id,
               entry as any // Assuming entry is compatible with UpdateSelfAppraisalDto
             );
@@ -307,7 +342,7 @@ class AppraisalService {
       id: appraisal.id,
       current_status: appraisal.current_status,
       employee: {
-        employeeId: appraisal.employee?.employeeId,
+        id: appraisal.employee?.id,
       },
       viewing_as: userRole,
       visible_fields: [],

@@ -22,28 +22,30 @@ class SelfAppraisalEntryController {
     //   checkRole([EmployeeRole.HR, EmployeeRole.LEAD]),
     //   this.createSelfAppraisal.bind(this)
     // );
-        router.post(
+    router.post(
       "/",
-    
-      this.createSelfAppraisal.bind(this)
+
+      this.createManySelfAppraisal.bind(this)
     );
     router.get("/", this.getAllEntries.bind(this));
-    router.get("/get-appraisals-of-lead/:leadId",checkRole([EmployeeRole.LEAD]),this.getAllAppraisalsByLeadId.bind(this));
+    router.get("/get-appraisals-of-lead/:leadId", checkRole([EmployeeRole.LEAD]), this.getAllAppraisalsByLeadId.bind(this));
     router.get("/:id", this.getEntryById.bind(this));
+    router.get("/by-appraisal/:appraisalId", this.getAllSelfAppraisalsByAppraisalId.bind(this));
     router.put("/:id", checkRole([EmployeeRole.HR]), this.updateEntry.bind(this));
     router.delete("/:id", checkRole([EmployeeRole.HR]), this.deleteEntry.bind(this));
   }
 
   async createSelfAppraisal(req: Request, res: Response, next: NextFunction) {
     try {
-      const dto = plainToInstance(CreateSelfAppraisalDto, req.body);
+      const { data, leadIds } = req.body
+      const dto = plainToInstance(CreateSelfAppraisalDto, data);
       const errors = await validate(dto);
       if (errors.length > 0) {
         this.logger.error(JSON.stringify(errors));
         throw new HttpException(400, JSON.stringify(errors));
       }
 
-      const created = await this.selfAppraisalEntryService.createSelfAppraisal(dto);
+      const created = await this.selfAppraisalEntryService.createSelfAppraisal(dto, leadIds);
       this.logger.info("SelfAppraisalEntry created successfully");
       res.status(201).send(created);
     } catch (error) {
@@ -51,6 +53,35 @@ class SelfAppraisalEntryController {
       next(error);
     }
   }
+
+  async createManySelfAppraisal(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { entries, leadIds } = req.body;
+
+      if (!Array.isArray(entries) || entries.length === 0 || !Array.isArray(leadIds)) {
+        throw new HttpException(400, "Invalid payload: entries and leadIds are required");
+      }
+
+      // Validate each entry
+      const dtos = entries.map((entry: any) => plainToInstance(CreateSelfAppraisalDto, entry));
+      for (const dto of dtos) {
+        const errors = await validate(dto);
+        if (errors.length > 0) {
+          this.logger.error(JSON.stringify(errors));
+          throw new HttpException(400, "Validation failed for one or more entries");
+        }
+      }
+
+      const created = await this.selfAppraisalEntryService.createMultipleSelfAppraisals(dtos, leadIds);
+
+      this.logger.info("SelfAppraisalEntries created successfully");
+      res.status(201).send(created);
+    } catch (error) {
+      this.logger.error("SelfAppraisalEntry creation failed: " + error);
+      next(error);
+    }
+  }
+
 
   async getAllEntries(req: Request, res: Response, next: NextFunction) {
     try {
@@ -76,36 +107,60 @@ class SelfAppraisalEntryController {
   }
 
   async updateEntry(req: Request, res: Response, next: NextFunction) {
-  try {
-    const id = Number(req.params.id);
-    if (isNaN(id)) {
-      this.logger.error("Invalid SelfAppraisalEntry ID");
-      throw new HttpException(400, "Invalid ID");
+    try {
+      const appraisalId = Number(req.params.id);
+      if (isNaN(appraisalId)) {
+        this.logger.error("Invalid Appraisal ID");
+        throw new HttpException(400, "Invalid Appraisal ID");
+      }
+
+      const { entries, leadIds } = req.body;
+
+      if (!Array.isArray(entries) || entries.length === 0) {
+        this.logger.error("Entries array is required and cannot be empty");
+        throw new HttpException(400, "Entries array is required and cannot be empty");
+      }
+
+      await this.selfAppraisalEntryService.updateEntryByAppraisalId(appraisalId, {
+        entries,
+        leadIds,
+      });
+
+      this.logger.info(`SelfAppraisalEntries updated successfully for Appraisal ID: ${appraisalId}`);
+      res.status(200).json({ message: "SelfAppraisalEntries updated successfully" });
+    } catch (error) {
+      this.logger.error("Failed to update SelfAppraisalEntries: " + error);
+      next(error);
     }
-
-    const updateData = req.body as Partial<SelfAppraisalEntry> & { leadIds?: number[] };
-
-    await this.selfAppraisalEntryService.updateEntry(id, updateData);
-    this.logger.info(`SelfAppraisalEntry updated successfully for ID: ${id}`);
-    res.status(200).send({ message: "SelfAppraisalEntry updated successfully" });
-  } catch (error) {
-    this.logger.error("Failed to update SelfAppraisalEntry: " + error);
-    next(error);
   }
-}
+
   async getAllAppraisalsByLeadId(req: any, res: any) {
-        const leadId = parseInt(req.params.leadId, 10);
-        if (isNaN(leadId)) {
-            return res.status(400).json({ error: "Invalid lead ID" });
-        }
-        try {
-            const appraisals = await this.selfAppraisalEntryService.findAllAppraisalsByLeadId(leadId);
-            return res.status(200).json(appraisals);
-        } catch (error) {
-            console.error("Error fetching appraisals:", error);
-            return res.status(500).json({ error: "Internal server error" });
-        }
+    const leadId = parseInt(req.params.leadId, 10);
+    if (isNaN(leadId)) {
+      return res.status(400).json({ error: "Invalid lead ID" });
     }
+    try {
+      const appraisals = await this.selfAppraisalEntryService.findAllAppraisalsByLeadId(leadId);
+      return res.status(200).json(appraisals);
+    } catch (error) {
+      console.error("Error fetching appraisals:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  }
+
+  async getAllSelfAppraisalsByAppraisalId(req: any, res: any) {
+    const appraisalId = parseInt(req.params.appraisalId, 10);
+    if (isNaN(appraisalId)) {
+      return res.status(400).json({ error: "Invalid lead ID" });
+    }
+    try {
+      const appraisals = await this.selfAppraisalEntryService.getEntriesByAppraisalId(appraisalId);
+      return res.status(200).json(appraisals);
+    } catch (error) {
+      console.error("Error fetching appraisals:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  }
 
   async deleteEntry(req: Request, res: Response, next: NextFunction) {
     try {

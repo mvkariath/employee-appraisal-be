@@ -31,6 +31,8 @@ class AppraisalController {
       this.updateAppraisal.bind(this)
     );
     router.get("/past-appraisals/:id", this.getPastAppraisals.bind(this));
+    router.get("/in-cycle/:id", this.getAppraisalByCycleId.bind(this));
+
     router.delete(
       "/:id",
       checkRole([EmployeeRole.HR]),
@@ -95,6 +97,7 @@ class AppraisalController {
       next(error);
     }
   }
+  
   async pushToLead(req: Request, res: Response, next: NextFunction) {
     try {
       const id = Number(req.params.id);
@@ -161,6 +164,22 @@ class AppraisalController {
       res.status(200).json(appraisalForm);
     } catch (error) {
       this.logger.error("getAppraisalForm - FAILED" + error);
+      next(error);
+    }
+  }
+
+  async getAppraisalByCycleId(req: Request, res: Response, next: NextFunction) {
+    try {
+      const appraisalCycleId = Number(req.params.id);
+      if (isNaN(appraisalCycleId))
+        throw new HttpException(400, "Invalid appraisal-cycle ID");
+
+      const appraisalData = await this.appraisalService.getAppraisalByCycleId(
+        appraisalCycleId,
+      );
+      res.status(200).json(appraisalData);
+    } catch (error) {
+      this.logger.error("getAppraisalbycycleid - FAILED" + error);
       next(error);
     }
   }

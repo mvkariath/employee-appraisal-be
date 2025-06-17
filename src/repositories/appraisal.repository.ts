@@ -33,26 +33,33 @@ class AppraisalRepository {
       ],
     });
   }
-  async findPastAppraisal(employeeId: number): Promise<Appraisal[] | null> {
-    return this.repository.find({
-      where: {
-        employee: { id: employeeId },
-        current_status: Status.ALL_DONE,
-      },
-      relations: [
-        "employee",
-        "cycle",
-        "idp",
-        "performance_factors",
-        "self_appraisal",
-      ],
-    });
-  }
+async findPastAppraisal(id: number): Promise<Appraisal[]| null> {
+  return this.repository.find({
+    where: {
+      employee: { id: id },
+       current_status: Status.ALL_DONE ,
+    },
+    relations: [
+      "employee",
+      "cycle",
+      "idp",
+      "performance_factors",
+      "self_appraisal",
+    ],
+  });
+}
 
   async findByEmployeeId(employeeId: number): Promise<Appraisal[]> {
     return this.repository.find({
       where: { employee: { id: employeeId } },
       relations: ["cycle"],
+    });
+  }
+
+   async findByCycleId(cycleId: number): Promise<Appraisal[]> {
+    return this.repository.find({
+      where: { cycle: { id: cycleId } },
+      relations: ["employee"],
     });
   }
 

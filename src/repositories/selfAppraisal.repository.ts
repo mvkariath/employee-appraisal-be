@@ -8,15 +8,12 @@ class SelfAppraisalEntryRepository {
     return this.repository.save(entry);
   }
 
-  async findMany(): Promise<SelfAppraisalEntry[]> {
-    return this.repository.find({
-      relations: ["appraisal", "appraisal.appraisalLeads", "appraisal.appraisalLeads.lead"]
-    });
+  async createMany(entries: SelfAppraisalEntry[]): Promise<SelfAppraisalEntry[]> {
+    return this.repository.save(entries); // bulk insert
   }
 
-  async findByAppraisalId(id: number): Promise<SelfAppraisalEntry | null> {
-    return this.repository.findOne({
-      where: { appraisal: { id: id } },
+  async findMany(): Promise<SelfAppraisalEntry[]> {
+    return this.repository.find({
       relations: ["appraisal", "appraisal.appraisalLeads", "appraisal.appraisalLeads.lead"]
     });
   }
@@ -28,8 +25,16 @@ class SelfAppraisalEntryRepository {
     });
   }
 
+  async findAllByAppraisalId(appraisalId: number): Promise<SelfAppraisalEntry[]> {
+    return this.repository.find({
+      where: { appraisal: { id: appraisalId } },
+      relations: ["appraisal.appraisalLeads"]
+    });
+  }
+
+
   async update(id: number, entry: SelfAppraisalEntry): Promise<void> {
-    await this.repository.save({ id, ...entry });
+    await this.repository.save(entry);
   }
 
   async delete(id: number): Promise<void> {

@@ -32,10 +32,6 @@ class CreateSelfAppraisalDto {
   @IsNotEmpty()
   project_time_frame: string;
 
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsNumber({}, { each: true })
-  leadIds: number[];
 }
 
 export default CreateSelfAppraisalDto
