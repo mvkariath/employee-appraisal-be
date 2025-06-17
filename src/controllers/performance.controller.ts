@@ -1,15 +1,16 @@
 import { Router } from "express";
 import PerformanceFactorService from "../services/perfomance-factors.services";
 import  { Request,Response } from "express";
+import { auditLogMiddleware } from "../middlewares/auditLog.middleware";
 class PerformanceController{
     constructor(private performanceService:PerformanceFactorService, router: Router) {
        
-        router.put("/", this.updatePerformanceFactor.bind(this));
+        router.put("/:id",auditLogMiddleware, this.updatePerformanceFactor.bind(this));
        
     }
      async updatePerformanceFactor(req: Request, res: Response){
-  const { appraisalId, competency, strengths, improvements, rating } = req.body;
-
+  const {  competency, strengths, improvements, rating } = req.body;
+ const appraisalId=Number(req.params.id);
   try {
     const result = await this.performanceService.updatePerformanceFactor(appraisalId, competency, {
       strengths,

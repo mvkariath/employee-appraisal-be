@@ -28,7 +28,7 @@ app.use("/appraisal", authMiddleware, appraisalRouter);
 app.use("/self-appraisal", authMiddleware, selfAppraisalEntryRouter);
 app.use("/audit-log", auditLogRouter);
 
-app.use("/performance-factors", authMiddleware,performanceFactorsRouter);
+app.use("/performance_factors", authMiddleware,performanceFactorsRouter);
 
 
 app.use("/auth",authRouter)

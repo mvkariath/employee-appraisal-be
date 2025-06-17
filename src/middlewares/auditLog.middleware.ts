@@ -17,12 +17,13 @@ export const auditLogMiddleware = async (req: Request, res: Response, next: Next
   const employeeId = (req as any).user?.id;
   const table = req.originalUrl.split("/")[1];
   const recordId = Number(req.params.id);
+  const competency=req.body.competency;
 
   if (!employeeId || isNaN(recordId) || !table) {
     console.warn("[AuditLog] Missing or invalid data", { employeeId, recordId, table });
     return next();
   }
-
+  
   const entityClass = entityMap[table];
   if (!entityClass) {
     console.warn(`[AuditLog] No entity class found for table: ${table}`);
@@ -33,7 +34,18 @@ export const auditLogMiddleware = async (req: Request, res: Response, next: Next
 
   let oldRecord: any = null;
   try {
-    oldRecord = await repository.findOne({ where: { id: recordId } });
+ if(table==="performance_factors"){
+    oldRecord = await repository.findOne({
+      where: {
+        appraisal: { id: recordId },
+        competency,
+      },
+      
+    });
+  }else{
+        oldRecord = await repository.findOne({ where: { id: recordId } });
+  }
+
   } catch (error) {
     console.error(`[AuditLog] Failed to fetch old record (${table}:${recordId})`, error);
     return next(); // don't block request
@@ -42,7 +54,20 @@ export const auditLogMiddleware = async (req: Request, res: Response, next: Next
   // After response is sent
   res.on("finish", async () => {
     try {
-      const newRecord = await repository.findOne({ where: { id: recordId } });
+
+  let newRecord: any = null;
+      if(table==="performance_factors"){
+    newRecord = await repository.findOne({
+      where: {
+        appraisal: { id: recordId },
+        competency,
+      },
+      
+    });
+  }else{
+        newRecord = await repository.findOne({ where: { id: recordId } });
+  }
+   
 
       if (!newRecord) {
         console.warn(`[AuditLog] Record not found after update (${table}:${recordId})`);
