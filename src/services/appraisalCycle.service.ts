@@ -4,15 +4,19 @@ import { LoggerService } from "./logger.service";
 import httpException from "../exceptions/httpExceptions";
 import { CreateAppraisalCycleDto } from "../dto/create-appraisalCycle.dto";
 import { UpdateAppraisalCycleDto } from "../dto/update-appraisalCycle.dto";
+import AppraisalService from "./appraisal.service";
 // import { UpdateAppraisalCycleDto } from "../dto/update-appraisal-cycle.dto";
 
 class AppraisalCycleService {
     private logger = LoggerService.getInstance("AppraisalCycleService");
 
-    constructor(private cycleRepository: AppraisalCycleRepository) {}
+    constructor(private cycleRepository: AppraisalCycleRepository,
+        private appraisalService: AppraisalService
+
+    ) { }
 
     async createCycle(appraisalCycleDto: CreateAppraisalCycleDto): Promise<AppraisalCycle> {
-        const {name,start_date,end_date,status,created_by} = appraisalCycleDto;
+        const { name, start_date, end_date, status, created_by, employees } = appraisalCycleDto;
 
         this.logger.info("createCycle - START");
 
@@ -24,10 +28,23 @@ class AppraisalCycleService {
         cycle.created_by = created_by;
 
         this.logger.debug(`Creating appraisal cycle: ${name}`);
-        const created = await this.cycleRepository.create(cycle);
+        const createdCycle = await this.cycleRepository.create(cycle);
 
-        this.logger.info(`createCycle - SUCCESS: Appraisal cycle '${created.name}' created`);
-        return created;
+        this.logger.info(`createCycle - SUCCESS: Appraisal cycle '${createdCycle.name}' created`);
+
+        if (employees && employees.length > 0) {
+            await this.appraisalService.createAppraisals({
+                employeeIds: employees,
+                cycle: createdCycle,
+            });
+        } else {
+            this.logger.warn("No employees selected for the appraisal cycle.");
+        }
+
+        this.logger.info(
+            `createCycleWithAppraisals - SUCCESS: Appraisal cycle '${createdCycle.name}' and associated appraisals created`
+        );
+        return createdCycle;
     }
 
     async getAllCycles(): Promise<AppraisalCycle[]> {

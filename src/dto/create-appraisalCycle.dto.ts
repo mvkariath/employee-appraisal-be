@@ -17,5 +17,8 @@ export class CreateAppraisalCycleDto {
     status: Status;
 
     @IsNotEmpty()
+    employees: number[]
+
+    @IsNotEmpty()
     created_by: Employee; // ideally: Employee
 }

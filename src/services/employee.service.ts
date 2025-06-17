@@ -13,7 +13,7 @@ class EmployeeService {
 
     async createEmployee(employeeDto: CreateEmployeeDto): Promise<Employee> {
 
-        const { employeeId, email, name, age, role, password, experience, status, dateOfJoining } = employeeDto;
+        const { employeeId, email, name, age, role, password, experience, status, dateOfJoining ,department} = employeeDto;
 
 
         this.logger.info('createEmployee - START');
@@ -23,6 +23,7 @@ class EmployeeService {
         newEmployee.email = email;
         newEmployee.age = age;
         newEmployee.role = role;
+        newEmployee.department = department;
         newEmployee.password = await bcrypt.hash(password, 10);
         newEmployee.experience = experience;
         newEmployee.status = status;
@@ -78,7 +79,7 @@ class EmployeeService {
         if (existingEmployee) {
             this.logger.debug(`updateEmployeeById - Found employee with ID ${id}, updating fields`);
 
-            const { employeeId, email, name, age, role, password, experience, status, dateOfJoining } = updateEmployeeDto;
+            const { employeeId, email, name, age, role, password, experience, status, dateOfJoining, department } = updateEmployeeDto;
 
 
             existingEmployee.employeeId = employeeId || existingEmployee.employeeId;
@@ -86,6 +87,7 @@ class EmployeeService {
             existingEmployee.email = email || existingEmployee.email;
             existingEmployee.age = age || existingEmployee.age;
             existingEmployee.role = role || existingEmployee.role;
+            existingEmployee.department = department || existingEmployee.department;
             existingEmployee.password = password && password !== '' ? await bcrypt.hash(password, 10) : existingEmployee.password;
             existingEmployee.experience = experience || existingEmployee.experience;
             existingEmployee.status = status || existingEmployee.status;

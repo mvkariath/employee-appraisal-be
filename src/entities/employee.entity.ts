@@ -41,6 +41,9 @@ class Employee extends AbstractEntity {
   @Column()
   experience: number;
 
+  @Column({nullable:true})
+  department: string;
+
    @Column({
     type: 'enum',
     enum: Status,

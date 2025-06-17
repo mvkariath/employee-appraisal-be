@@ -26,8 +26,8 @@ export class UpdateEmployeeDto {
   @IsOptional()
   password?: string;
   
-  // @IsOptional()
-  // departmentId?: number;
+  @IsOptional()
+  department: string;
 
   @IsOptional()
   @IsEnum(EmployeeRole)
