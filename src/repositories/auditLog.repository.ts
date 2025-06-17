@@ -31,5 +31,19 @@ class AuditLogRepository {
 
         return log;
     }
+
+    async findByEmployeeId(id: number): Promise<AuditLog | null> {
+        const log = await this.repository.findOne({
+            where: { Employee:{id:id} },
+            relations: ["Employee"],
+        });
+
+        if (log?.Employee) {
+            const { password, ...sanitizedEmployee } = log.Employee;
+            log.Employee = sanitizedEmployee as any;
+        }
+
+        return log;
+    }
 }
 export default AuditLogRepository;

@@ -106,20 +106,6 @@ class AppraisalController {
       next(error);
     }
   }
-<<<<<<< Updated upstream
-  
-  async getAppraisalById(req: Request, res: Response, next: NextFunction) {
-    try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) throw new HttpException(400, "Invalid appraisal ID");
-      const appraisal = await this.appraisalService.getAppraisalById(id);
-      res.status(200).json(appraisal);
-    } catch (error) {
-      this.logger.error("getAppraisalById - FAILED" + error);
-      next(error);
-    }
-  }
-=======
   // async getAppraisalById(req: Request, res: Response, next: NextFunction) {
   //   try {
   //     const id = Number(req.params.id);
@@ -131,7 +117,6 @@ class AppraisalController {
   //     next(error);
   //   }
   // }
->>>>>>> Stashed changes
 
   async updateAppraisal(req: Request, res: Response, next: NextFunction) {
     try {

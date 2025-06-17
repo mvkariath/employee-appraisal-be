@@ -14,7 +14,7 @@ class AuditLogService {
   }
 
   async getLogById(id: number): Promise<AuditLog> {
-    const log = await this.auditLogRepo.findById(id);
+    const log = await this.auditLogRepo.findByEmployeeId(id);
     if (!log) {
       throw new HttpException(404, "Audit log not found");
     }
