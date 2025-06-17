@@ -123,8 +123,10 @@ class AppraisalController {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) throw new HttpException(400, "Invalid appraisal ID");
-      const updated = await this.appraisalService.updateAppraisalById(
+      const updated = await this.appraisalService.updateFormData(
         id,
+        req.user.id,
+        req.user.role,
         req.body
       );
       res.status(200).json({ message: "Appraisal updated", updated });
@@ -153,6 +155,7 @@ class AppraisalController {
 
       const appraisalForm = await this.appraisalService.fetchFormData(
         appraisalId,
+        req.user.id,
         req.user.role
       );
       res.status(200).json(appraisalForm);

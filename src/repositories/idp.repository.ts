@@ -23,7 +23,7 @@ class IDPRepository {
     id: number,
     updatedData: Partial<IndividualDevelopmentPlan>
   ): Promise<IndividualDevelopmentPlan> {
-    const existing = await this.repository.findOneBy({ id });
+    const existing = await this.repository.findOne({ where: { id } });
 
     if (!existing) {
       throw new Error(`IndividualDevelopmentPlan with id ${id} not found`);

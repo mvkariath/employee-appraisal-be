@@ -5,13 +5,13 @@ import Employee from "../entities/employee.entity";
 import EmployeeService from "../services/employee.service";
 import EmployeeController from "../controllers/employee.controller";
 
-
 const employeeRouter = express.Router();
-const employeeRepository = new EmployeeRepository(datasource.getRepository(Employee));
+const employeeRepository = new EmployeeRepository(
+  datasource.getRepository(Employee)
+);
 const employeeService = new EmployeeService(employeeRepository);
-const employeeController = new EmployeeController(employeeService,employeeRouter);
 
-export {employeeService}
+export { employeeService };
 export default employeeRouter;
 
 // employeeRouter.get("/", employeeController.getAllEmployees);

@@ -2,16 +2,10 @@ import { Repository } from "typeorm";
 
 import { IndividualDevelopmentPlan } from "../entities/IndividualDevelopmentPlan.entity";
 import { Appraisal } from "../entities/Appraisal.entity";
-import IDPRepository from "../repositories/idp.reposiotry";
+import IDPRepository from "../repositories/idp.repository";
 
 export class IDPService {
-  private idpRepository: IDPRepository;
-
-  constructor(
-    private readonly repository: Repository<IndividualDevelopmentPlan>
-  ) {
-    this.idpRepository = new IDPRepository(this.repository);
-  }
+  constructor(private readonly idpRepository: IDPRepository) {}
 
   async createIDP(
     idp: IndividualDevelopmentPlan

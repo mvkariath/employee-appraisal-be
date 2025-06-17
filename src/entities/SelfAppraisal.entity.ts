@@ -1,13 +1,6 @@
-import {
-  Entity,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from "typeorm";
+import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { Appraisal } from "./Appraisal.entity";
 import AbstractEntity from "./abstract.entity";
-import { AppraisalLead } from "./AppraisalLead.entity";
 
 @Entity("self_appraisal_entries")
 export class SelfAppraisalEntry extends AbstractEntity {

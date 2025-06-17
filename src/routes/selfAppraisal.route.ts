@@ -1,8 +1,8 @@
 import express from "express";
 import datasource from "../../db/data-source";
 
-import {SelfAppraisalEntry} from "../entities/SelfAppraisal.entity";
-import {AppraisalLead} from "../entities/AppraisalLead.entity";
+import { SelfAppraisalEntry } from "../entities/SelfAppraisal.entity";
+import { AppraisalLead } from "../entities/AppraisalLead.entity";
 import SelfAppraisalEntryRepository from "../repositories/selfAppraisal.repository";
 import AppraisalLeadRepository from "../repositories/appraisalLead.repository";
 
@@ -20,12 +20,15 @@ const appraisalLeadRepository = new AppraisalLeadRepository(
 );
 
 // Service
-const selfAppraisalEntryService = new SelfAppraisalEntryService(
+export const selfAppraisalEntryService = new SelfAppraisalEntryService(
   selfAppraisalEntryRepository,
   appraisalLeadRepository
 );
 
 // Controller
-new SelfAppraisalEntryController(selfAppraisalEntryService, selfAppraisalEntryRouter);
+new SelfAppraisalEntryController(
+  selfAppraisalEntryService,
+  selfAppraisalEntryRouter
+);
 
 export default selfAppraisalEntryRouter;
