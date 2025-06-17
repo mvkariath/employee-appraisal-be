@@ -78,14 +78,16 @@ class AppraisalService {
     this.logger.info("getAllAppraisals - START");
     return await this.appraisalRepository.findAll();
   }
- async getPastAppraisals(employeeId: number): Promise<Appraisal[] |null> {
-    this.logger.info(`getPastAppraisals - START for employee ID: ${employeeId}`);
+  async getPastAppraisals(employeeId: number): Promise<Appraisal[] | null> {
+    this.logger.info(
+      `getPastAppraisals - START for employee ID: ${employeeId}`
+    );
     if (!employeeId) {
       this.logger.error("Invalid employee ID");
       throw new httpException(400, "Invalid employee ID");
     }
     return await this.appraisalRepository.findPastAppraisal(employeeId);
- }
+  }
   async getAppraisalById(id: number): Promise<Appraisal> {
     this.logger.info(`getAppraisalById - ID: ${id}`);
     const appraisal = await this.appraisalRepository.findById(id);
@@ -126,7 +128,7 @@ class AppraisalService {
       );
     }
   }
- 
+
   async deleteAppraisalById(id: number): Promise<void> {
     this.logger.info(`removeAppraisalById - START: ID = ${id}`);
     const existingAppraisal = await this.appraisalRepository.findById(id);
@@ -144,7 +146,7 @@ class AppraisalService {
   }
 
   async fetchFormData(appraisalId: number, userRole: string) {
-    const appraisal = await this.appraisalRepository.findById(appraisalId); // includes idp, performance_factors, etc.
+    const appraisal = await this.appraisalRepository.findById(appraisalId);
 
     if (!appraisal) {
       throw new Error(`Appraisal with id ${appraisalId} not found`);
@@ -154,27 +156,76 @@ class AppraisalService {
     const isLead = userRole === "LEAD";
     const isDev = userRole === "DEVELOPER";
 
-    if (isHR) {
-      return appraisal; // HR sees everything
-    }
-
-    const result: any = {
+    const baseData: any = {
       id: appraisal.id,
       current_status: appraisal.current_status,
-      employee: appraisal.employee,
-      cycle: appraisal.cycle,
+      employee: {
+        employeeId: appraisal.employee?.employeeId,
+      },
+      viewing_as: userRole,
+      visible_fields: [],
     };
 
+    if (isHR) {
+      // HR sees everything
+      return {
+        ...baseData,
+        visible_fields: ["idp", "performance_factors", "self_appraisal"],
+        idp: appraisal.idp?.map(
+          ({ id, competency, technical_objective, technical_plan }) => ({
+            id,
+            competency,
+            technical_objective,
+            technical_plan,
+          })
+        ),
+        performance_factors: appraisal.performance_factors?.map(
+          ({ id, competency, strengths, improvements, rating }) => ({
+            id,
+            competency,
+            strengths,
+            improvements,
+            rating,
+          })
+        ),
+        self_appraisal: appraisal.self_appraisal || [],
+      };
+    }
+
     if (isDev) {
-      result.self_appraisal = appraisal.self_appraisal;
+      baseData.visible_fields.push("self_appraisal");
+      baseData.self_appraisal = appraisal.self_appraisal || [];
+      return baseData;
     }
 
-    if (isLead && appraisal.current_status === "FEEDBACK_SUBMITTED") {
-      result.self_appraisal = appraisal.self_appraisal;
-      result.performance_factors = appraisal.performance_factors;
+    if (isLead) {
+      baseData.visible_fields.push("self_appraisal", "performance_factors");
+      baseData.self_appraisal = appraisal.self_appraisal || [];
+      baseData.performance_factors = appraisal.performance_factors?.map(
+        ({ id, competency, strengths, improvements, rating }) => ({
+          id,
+          competency,
+          strengths,
+          improvements,
+          rating,
+        })
+      );
+      if (appraisal.current_status === "FEEDBACK_SUBMITTED") {
+        baseData.visible_fields.push("idp");
+        baseData.idp = appraisal.idp?.map(
+          ({ id, competency, technical_objective, technical_plan }) => ({
+            id,
+            competency,
+            technical_objective,
+            technical_plan,
+          })
+        );
+      }
+      return baseData;
     }
 
-    return result;
+    // Default fallback (e.g., Lead in INITIATED phase, etc.)
+    return baseData;
   }
 }
 
