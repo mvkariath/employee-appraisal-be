@@ -1,5 +1,5 @@
 import { Repository } from "typeorm";
-import { Appraisal } from "../entities/Appraisal.entity";
+import { Appraisal, Status } from "../entities/Appraisal.entity";
 
 class AppraisalRepository {
   constructor(private repository: Repository<Appraisal>) {}
@@ -32,6 +32,21 @@ class AppraisalRepository {
       ],
     });
   }
+async findPastAppraisal(employeeId: number): Promise<Appraisal[]| null> {
+  return this.repository.find({
+    where: {
+      employee: { id: employeeId },
+       current_status: Status.ALL_DONE ,
+    },
+    relations: [
+      "employee",
+      "cycle",
+      "idp",
+      "performance_factors",
+      "self_appraisal",
+    ],
+  });
+}
 
   async findByEmployeeId(employeeId: number): Promise<Appraisal[]> {
     return this.repository.find({

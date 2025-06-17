@@ -30,6 +30,8 @@ class AppraisalController {
       checkRole([EmployeeRole.HR, EmployeeRole.LEAD]),
       this.updateAppraisal.bind(this)
     );
+    router.get("/past-appraisals/:id",
+     this.getPastAppraisals.bind(this));
     router.delete(
       "/:id",
       checkRole([EmployeeRole.HR]),
@@ -84,6 +86,15 @@ class AppraisalController {
       next(error);
     }
   }
+  async getPastAppraisals(req: Request, res: Response, next: NextFunction) {
+
+    try {
+      const appraisals = await this.appraisalService.getPastAppraisals(Number(req.params.id));
+      res.status(200).json(appraisals);
+    } catch (error) {
+      this.logger.error("getPastAppraisals - FAILED" + error);
+      next(error);
+    }}
   async pushToLead(req: Request, res: Response, next: NextFunction) {
     try {
       const id = Number(req.params.id);

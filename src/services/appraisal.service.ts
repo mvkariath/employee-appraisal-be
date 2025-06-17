@@ -78,7 +78,14 @@ class AppraisalService {
     this.logger.info("getAllAppraisals - START");
     return await this.appraisalRepository.findAll();
   }
-
+ async getPastAppraisals(employeeId: number): Promise<Appraisal[] |null> {
+    this.logger.info(`getPastAppraisals - START for employee ID: ${employeeId}`);
+    if (!employeeId) {
+      this.logger.error("Invalid employee ID");
+      throw new httpException(400, "Invalid employee ID");
+    }
+    return await this.appraisalRepository.findPastAppraisal(employeeId);
+ }
   async getAppraisalById(id: number): Promise<Appraisal> {
     this.logger.info(`getAppraisalById - ID: ${id}`);
     const appraisal = await this.appraisalRepository.findById(id);
