@@ -28,11 +28,7 @@ class SelfAppraisalEntryController {
       this.createManySelfAppraisal.bind(this)
     );
     router.get("/", this.getAllEntries.bind(this));
-    router.get(
-      "/get-appraisals-of-lead/:leadId",
-      checkRole([EmployeeRole.LEAD]),
-      this.getAllAppraisalsByLeadId.bind(this)
-    );
+    router.get("/get-appraisals-of-lead/", checkRole([EmployeeRole.LEAD]), this.getAllAppraisalsByLeadId.bind(this));
     router.get("/:id", this.getEntryById.bind(this));
     router.get(
       "/by-appraisal/:appraisalId",
@@ -182,7 +178,8 @@ class SelfAppraisalEntryController {
   }
 
   async getAllAppraisalsByLeadId(req: any, res: any) {
-    const leadId = parseInt(req.params.leadId, 10);
+    const leadId = req.user.id;
+    console.log(leadId)
     if (isNaN(leadId)) {
       return res.status(400).json({ error: "Invalid lead ID" });
     }
@@ -200,14 +197,14 @@ class SelfAppraisalEntryController {
           const employee = entry.appraisal.employee;
           const cycle = entry.appraisal.cycle;
 
-          return {
-            name: employee?.name,
-            department: employee?.department,
-            cycleName: cycle?.name,
-            startDate: cycle?.start_date,
-            endDate: cycle?.end_date,
-          };
-        });
+        return {
+          name: employee?.name,
+          department: employee?.department,
+          cycleName: cycle?.name,
+          startDate: cycle?.start_date,
+          endDate: cycle?.end_date
+        };
+      });
 
       return res.status(200).json(filtered);
     } catch (error) {
