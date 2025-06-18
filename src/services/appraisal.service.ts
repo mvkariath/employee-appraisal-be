@@ -122,25 +122,36 @@ class AppraisalService {
     return appraisal;
   }
 
-  async getAppraisalByCycleId(
-    id: number
-  ): Promise<{ appraisalId: number; employee: Employee }[]> {
-    this.logger.info(`getAppraisalById - ID: ${id}`);
-
-    const appraisals = await this.appraisalRepository.findByCycleId(id);
+ async getAppraisalByCycleId(id: number): Promise<any> {
+  this.logger.info(`getAppraisalById - ID: ${id}`);
+  
+  const appraisals = await this.appraisalRepository.findByCycleId(id);
 
     if (!appraisals) {
       this.logger.error("Appraisal not found");
       throw new httpException(404, "Appraisal not found");
     }
 
-    const result = appraisals.map((appraisal) => ({
-      appraisalId: appraisal.id,
-      employee: appraisal.employee,
-    }));
+   const employeesWithAppraisal = appraisals.map((appraisal) => {
+    const {
+      password,
+      createdAt,
+      updatedAt,
+      deletedAt,
+      ...cleanEmployee
+    } = appraisal.employee;
 
-    return result;
-  }
+    return {
+      ...cleanEmployee,
+      appraisalId: appraisal.id,
+      status: appraisal.current_status,
+    };
+  });
+
+  return employeesWithAppraisal;
+
+}
+
 
   async updateAppraisalById(
     id: number,
