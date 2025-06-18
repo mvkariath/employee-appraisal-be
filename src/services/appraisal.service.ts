@@ -208,6 +208,15 @@ class AppraisalService {
     const isLead =
       role === "LEAD" &&
       existing.appraisalLeads?.some((l) => l.lead.id === userId);
+    if (role === "LEAD" && !isLead) {
+      this.logger.error(
+        `updateFormData - ACCESS DENIED: Appraisal ID: ${appraisalId}, User ID: ${userId}, Role: ${role}`
+      );
+      throw new httpException(
+        403,
+        "This form is not yet accessible to this lead"
+      );
+    }
     const isHR = role === "HR";
 
     if (!isDev && !isLead && !isHR) throw new Error("Access denied");
@@ -340,6 +349,15 @@ class AppraisalService {
     const isLeadAccessible =
       appraisal.appraisalLeads?.some((lead) => lead.lead.id === userId) &&
       userRole === "LEAD";
+    if (userRole === "LEAD" && !isLeadAccessible) {
+      this.logger.error(
+        `updateFormData - ACCESS DENIED: Appraisal ID: ${appraisalId}, User ID: ${userId}, Role: ${userRole}`
+      );
+      throw new httpException(
+        403,
+        "This form is not yet accessible to this lead"
+      );
+    }
     const isHRAccessible = userRole === "HR";
     if (!isEmployeeAccessible && !isLeadAccessible && !isHRAccessible) {
       this.logger.error(
