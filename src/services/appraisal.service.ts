@@ -123,36 +123,29 @@ class AppraisalService {
     return appraisal;
   }
 
- async getAppraisalByCycleId(id: number): Promise<any> {
-  this.logger.info(`getAppraisalById - ID: ${id}`);
-  
-  const appraisals = await this.appraisalRepository.findByCycleId(id);
+  async getAppraisalByCycleId(id: number): Promise<any> {
+    this.logger.info(`getAppraisalById - ID: ${id}`);
+
+    const appraisals = await this.appraisalRepository.findByCycleId(id);
 
     if (!appraisals) {
       this.logger.error("Appraisal not found");
       throw new httpException(404, "Appraisal not found");
     }
 
-   const employeesWithAppraisal = appraisals.map((appraisal) => {
-    const {
-      password,
-      createdAt,
-      updatedAt,
-      deletedAt,
-      ...cleanEmployee
-    } = appraisal.employee;
+    const employeesWithAppraisal = appraisals.map((appraisal) => {
+      const { password, createdAt, updatedAt, deletedAt, ...cleanEmployee } =
+        appraisal.employee;
 
-    return {
-      ...cleanEmployee,
-      appraisalId: appraisal.id,
-      status: appraisal.current_status,
-    };
-  });
+      return {
+        ...cleanEmployee,
+        appraisalId: appraisal.id,
+        status: appraisal.current_status,
+      };
+    });
 
-  return employeesWithAppraisal;
-
-}
-
+    return employeesWithAppraisal;
+  }
 
   async updateAppraisalById(
     id: number,
@@ -213,7 +206,8 @@ class AppraisalService {
     // Authorization check (assumes same logic as fetchFormData)
     const isDev = role === "DEVELOPER" && existing.employee.id === userId;
     const isLead =
-      role === "LEAD" && existing.appraisalLeads?.some((l) => l.id === userId);
+      role === "LEAD" &&
+      existing.appraisalLeads?.some((l) => l.lead.id === userId);
     const isHR = role === "HR";
 
     if (!isDev && !isLead && !isHR) throw new Error("Access denied");
@@ -335,12 +329,12 @@ class AppraisalService {
     this.logger.info(
       `fetchFormData - Appraisal ID: ${appraisalId}, Role: ${userRole}`
     );
-
+    console.log(appraisal.appraisalLeads);
     //check if the user has the access to view the form
     const isEmployeeAccessible =
       appraisal.employee?.id === userId && userRole === "DEVELOPER";
     const isLeadAccessible =
-      appraisal.appraisalLeads?.some((lead) => lead.id === userId) &&
+      appraisal.appraisalLeads?.some((lead) => lead.lead.id === userId) &&
       userRole === "LEAD";
     const isHRAccessible = userRole === "HR";
     if (!isEmployeeAccessible && !isLeadAccessible && !isHRAccessible) {
