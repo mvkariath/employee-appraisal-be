@@ -141,7 +141,24 @@ class SelfAppraisalEntryController {
     }
     try {
       const appraisals = await this.selfAppraisalEntryService.findAllAppraisalsByLeadId(leadId);
-      return res.status(200).json(appraisals);
+          const filtered = appraisals.filter(entry => 
+      entry.appraisal && Array.isArray(entry.appraisal.performance_factors) && entry.appraisal.performance_factors.length > 0
+    ).map(entry => {
+        const employee = entry.appraisal.employee;
+        const cycle = entry.appraisal.cycle;
+
+        return {
+          name: employee?.name,
+          department: employee?.department,
+          cycleName: cycle?.name,
+          startDate: cycle?.start_date,
+          endDate: cycle?.end_date
+        };
+      });
+
+    return res.status(200).json(filtered);
+
+     
     } catch (error) {
       console.error("Error fetching appraisals:", error);
       return res.status(500).json({ error: "Internal server error" });

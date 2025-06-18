@@ -22,7 +22,7 @@ async findAllAppraisalsByLeadId(leadId: number): Promise<AppraisalLead[]> {
     },
     relations: [
       'appraisal',
-      'appraisal.self_appraisal',         // ← property name is 'self_appraisal'
+            // ← property name is 'self_appraisal'
       'appraisal.performance_factors',    // ← property name is 'performance_factors'
     ],
   });
