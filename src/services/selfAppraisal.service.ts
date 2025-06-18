@@ -14,9 +14,12 @@ class SelfAppraisalEntryService {
   constructor(
     private selfAppraisalEntryRepo: SelfAppraisalEntryRepository,
     private appraisalLeadRepo: AppraisalLeadRepository
-  ) { }
+  ) {}
 
-  async createSelfAppraisal(data: CreateSelfAppraisalDto, leadIds: number[]): Promise<SelfAppraisalEntry> {
+  async createSelfAppraisal(
+    data: CreateSelfAppraisalDto,
+    leadIds: number[]
+  ): Promise<SelfAppraisalEntry> {
     this.logger.info("createSelfAppraisal - START");
 
     if (!data.appraisalId || !Array.isArray(leadIds) || leadIds.length === 0) {
@@ -47,12 +50,15 @@ class SelfAppraisalEntryService {
     return createdEntry;
   }
 
-  async createMultipleSelfAppraisals(entries: CreateSelfAppraisalDto[], leadIds: number[]): Promise<SelfAppraisalEntry[]> {
-    this.logger.info("createMultipleSelfAppraisals - START");
+  async createMultipleSelfAppraisals(
+    appraisalId: number,
+    entries: CreateSelfAppraisalDto[]
+  ): Promise<SelfAppraisalEntry[]> {
+    this.logger.info("createMultipleSelfAppraisals - START" + appraisalId);
 
     const selfAppraisalEntities = entries.map((data) => {
       const entry = new SelfAppraisalEntry();
-      entry.appraisal = { id: data.appraisalId } as Appraisal;
+      entry.appraisal = { id: appraisalId } as Appraisal;
       entry.delivery_details = data.delivery_details;
       entry.accomplishments = data.accomplishments;
       entry.approach_solution = data.approach_solution;
@@ -61,19 +67,13 @@ class SelfAppraisalEntryService {
       return entry;
     });
 
-    const createdEntries = await this.selfAppraisalEntryRepo.createMany(selfAppraisalEntities);
-
-    const leads: AppraisalLead[] = leadIds.map((leadId) => {
-      const lead = new AppraisalLead();
-      lead.appraisal = { id: entries[0].appraisalId } as Appraisal;
-      lead.lead = { id: leadId } as Employee;
-      return lead;
-    });
+    const createdEntries = await this.selfAppraisalEntryRepo.createMany(
+      selfAppraisalEntities
+    );
 
     this.logger.info("createMultipleSelfAppraisals - SUCCESS");
     return createdEntries;
   }
-
 
   async getAllEntries(): Promise<SelfAppraisalEntry[]> {
     return this.selfAppraisalEntryRepo.findMany();
@@ -87,21 +87,43 @@ class SelfAppraisalEntryService {
     return entry;
   }
 
-
   async findAllAppraisalsByLeadId(leadId: number) {
     return this.appraisalLeadRepo.findAllAppraisalsByLeadId(leadId);
   }
 
-  async getEntriesByAppraisalId(appraisalId: number): Promise<SelfAppraisalEntry[]> {
+  async getEntriesByAppraisalId(
+    appraisalId: number
+  ): Promise<SelfAppraisalEntry[]> {
     return this.selfAppraisalEntryRepo.findAllByAppraisalId(appraisalId);
   }
+  async updateLeads(appraisalId: number, leadIds: number[]) {
+    await this.appraisalLeadRepo.deleteByAppraisalId(appraisalId);
+    if (leadIds && leadIds.length > 0) {
+      const newLeads = leadIds.map((leadId) => {
+        // to-do - check if leadId exists in Employee table and role is lead
+        const lead = new AppraisalLead();
+        lead.appraisal = { id: appraisalId } as Appraisal;
+        lead.lead = { id: leadId } as Employee;
+        return lead;
+      });
 
-
+      await this.appraisalLeadRepo.createMany(newLeads);
+    }
+  }
+  async updateSelfAppraisal(id: number, data: Partial<Appraisal>) {
+    const appraisal = await this.selfAppraisalEntryRepo.findById(id);
+    if (!appraisal) {
+      throw new Error("Self Appraisal not found");
+    }
+    Object.assign(appraisal, data);
+    return this.selfAppraisalEntryRepo.update(id, appraisal);
+  }
   async updateEntryByAppraisalId(
     appraisalId: number,
-    data: { entries: CreateSelfAppraisalDto[], leadIds?: number[] }
+    data: { entries: CreateSelfAppraisalDto[]; leadIds?: number[] }
   ): Promise<void> {
-    const existingEntries = await this.selfAppraisalEntryRepo.findAllByAppraisalId(appraisalId);
+    const existingEntries =
+      await this.selfAppraisalEntryRepo.findAllByAppraisalId(appraisalId);
 
     if (!existingEntries || existingEntries.length === 0) {
       const createPayload = data.entries.map((entry) => ({
@@ -109,7 +131,10 @@ class SelfAppraisalEntryService {
         appraisalId,
       })) as CreateSelfAppraisalDto[];
 
-      await this.createMultipleSelfAppraisals(createPayload, data.leadIds || []);
+      // await this.createMultipleSelfAppraisals(
+      //   createPayload,
+      //   data.leadIds || []
+      // );
       return;
     }
 
@@ -117,7 +142,7 @@ class SelfAppraisalEntryService {
     for (const entryData of data.entries) {
       if (!entryData.appraisalId) continue; // Skip if no ID
 
-      const entry = existingEntries.find(e => e.id === entryData.appraisalId);
+      const entry = existingEntries.find((e) => e.id === entryData.appraisalId);
       if (!entry) continue;
 
       Object.assign(entry, entryData);
@@ -138,7 +163,6 @@ class SelfAppraisalEntryService {
       await this.appraisalLeadRepo.createMany(newLeads);
     }
   }
-
 
   async deleteEntry(id: number): Promise<void> {
     const existing = await this.selfAppraisalEntryRepo.findById(id);

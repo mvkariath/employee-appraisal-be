@@ -18,6 +18,7 @@ import diffArrayById from "../utils/deepDiff";
 import SelfAppraisalEntryService from "./selfAppraisal.service";
 import { IDPService } from "./idp.services";
 import CreateSelfAppraisalDto from "../dto/create-selfAppraisal.dto";
+import { EntityRepository } from "typeorm";
 function getAllowedFieldsForRole(role: string, status: string): string[] {
   const rules = {
     HR: ["idp", "self_appraisal", "performance_factors"],
@@ -104,9 +105,7 @@ class AppraisalService {
     return await this.appraisalRepository.findAll();
   }
   async getPastAppraisals(id: number): Promise<Appraisal[] | null> {
-    this.logger.info(
-      `getPastAppraisals - START for employee ID: ${id}`
-    );
+    this.logger.info(`getPastAppraisals - START for employee ID: ${id}`);
     if (!id) {
       this.logger.error("Invalid employee ID");
       throw new httpException(400, "Invalid employee ID");
@@ -123,24 +122,25 @@ class AppraisalService {
     return appraisal;
   }
 
- async getAppraisalByCycleId(id: number): Promise<{ appraisalId: number; employee: Employee }[]> {
-  this.logger.info(`getAppraisalById - ID: ${id}`);
-  
-  const appraisals = await this.appraisalRepository.findByCycleId(id);
+  async getAppraisalByCycleId(
+    id: number
+  ): Promise<{ appraisalId: number; employee: Employee }[]> {
+    this.logger.info(`getAppraisalById - ID: ${id}`);
 
-  if (!appraisals) {
-    this.logger.error("Appraisal not found");
-    throw new httpException(404, "Appraisal not found");
+    const appraisals = await this.appraisalRepository.findByCycleId(id);
+
+    if (!appraisals) {
+      this.logger.error("Appraisal not found");
+      throw new httpException(404, "Appraisal not found");
+    }
+
+    const result = appraisals.map((appraisal) => ({
+      appraisalId: appraisal.id,
+      employee: appraisal.employee,
+    }));
+
+    return result;
   }
-
-  const result = appraisals.map((appraisal) => ({
-    appraisalId: appraisal.id,
-    employee: appraisal.employee,
-  }));
-
-  return result; 
-}
-
 
   async updateAppraisalById(
     id: number,
@@ -231,12 +231,19 @@ class AppraisalService {
       }
 
       // Self Appraisal
+      this.selfAppraisalService.updateLeads(
+        appraisalId,
+        //@ts-ignore
+        incomingData.appraisalLeads
+      );
       if (sanitizedData.self_appraisal) {
         const { toCreate, toUpdate, toDelete } = diffArrayById(
           existing.self_appraisal || [],
           sanitizedData.self_appraisal
         );
-
+        console.log("Self Appraisal toCreate:", toCreate);
+        console.log("Self Appraisal toUpdate:", toUpdate);
+        console.log("Self Appraisal toDelete:", toDelete);
         //for all add update and delete operations loop trouh the aray please
         if (
           toCreate.length === 0 &&
@@ -250,24 +257,25 @@ class AppraisalService {
           );
         }
         // Create new self appraisals
-       if (toCreate.length > 0) {
-      const createPayload = toCreate.map(entry => ({
-        ...entry,
-        appraisalId,
-      })) as CreateSelfAppraisalDto[];
-
-      await this.selfAppraisalService.createMultipleSelfAppraisals(createPayload,leadIds);
-      this.logger.info(`Created ${toCreate.length} self appraisal entries`);
-    }
+        if (toCreate.length > 0) {
+          await this.selfAppraisalService.createMultipleSelfAppraisals(
+            appraisalId,
+            toCreate as any
+          );
+          this.logger.info(`Created ${toCreate.length} self appraisal entries`);
+        }
         // Update existing self appraisals
         if (toUpdate.length > 0) {
           this.logger.info(`Updating ${toUpdate.length} self appraisals`);
           for (const entry of toUpdate) {
-            const updatedEntry = await this.selfAppraisalService.updateEntryByAppraisalId(
-              entry.id,
-              entry as any // Assuming entry is compatible with UpdateSelfAppraisalDto
+            const updatedEntry =
+              await this.selfAppraisalService.updateSelfAppraisal(
+                entry.id,
+                entry as any // Assuming entry is compatible with UpdateSelfAppraisalDto
+              );
+            this.logger.info(
+              `Updated Self Appraisal Entry ID: ${updatedEntry}`
             );
-            this.logger.info(`Updated Self Appraisal Entry ID: ${entry.id}`);
           }
         }
         if (toDelete.length > 0) {
@@ -352,7 +360,12 @@ class AppraisalService {
       // HR sees everything
       return {
         ...baseData,
-        visible_fields: ["idp", "performance_factors", "self_appraisal"],
+        visible_fields: [
+          "idp",
+          "performance_factors",
+          "self_appraisal",
+          "appraisalLeads",
+        ],
         idp: appraisal.idp?.map(
           ({ id, competency, technical_objective, technical_plan }) => ({
             id,
@@ -371,12 +384,15 @@ class AppraisalService {
           })
         ),
         self_appraisal: appraisal.self_appraisal || [],
+        appraisalLeads: appraisal.appraisalLeads || [],
       };
     }
 
     if (isDev) {
-      baseData.visible_fields.push("self_appraisal");
+      baseData.visible_fields.push("self_appraisal", "appraisalLeads");
       baseData.self_appraisal = appraisal.self_appraisal || [];
+      baseData.appraisalLeads = appraisal.appraisalLeads || [];
+
       return baseData;
     }
 
