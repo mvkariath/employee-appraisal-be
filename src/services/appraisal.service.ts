@@ -34,9 +34,10 @@ function getAllowedFieldsForRole(role: string, status: string): string[] {
 function filterFieldsByRole(input: any, allowedFields: string[]) {
   const filtered: any = {};
   for (const field of allowedFields) {
-    console.log("we are going through", field);
+    console.log("we are going through", field, allowedFields);
     if (field in input) filtered[field] = input[field];
   }
+  console.log("Filtered fields:", filtered);
   return filtered;
 }
 class AppraisalService {
@@ -240,86 +241,82 @@ class AppraisalService {
           this.logger.info(`Updated IDP with ID ${updatedIdp.id}`);
         }
       }
-
-      // Self Appraisal
-      this.selfAppraisalService.updateLeads(
-        appraisalId,
-        //@ts-ignore
-        incomingData.appraisalLeads
+    }
+    // Self Appraisal
+    this.selfAppraisalService.updateLeads(
+      appraisalId,
+      //@ts-ignore
+      incomingData.appraisalLeads
+    );
+    if (sanitizedData.self_appraisal) {
+      const { toCreate, toUpdate, toDelete } = diffArrayById(
+        existing.self_appraisal || [],
+        sanitizedData.self_appraisal
       );
-      if (sanitizedData.self_appraisal) {
-        const { toCreate, toUpdate, toDelete } = diffArrayById(
-          existing.self_appraisal || [],
-          sanitizedData.self_appraisal
+
+      //for all add update and delete operations loop trouh the aray please
+      if (
+        toCreate.length === 0 &&
+        toUpdate.length === 0 &&
+        toDelete.length === 0
+      ) {
+        this.logger.info("No Self Appraisal updates found");
+      } else {
+        this.logger.info(
+          `Self Appraisal updates - Create: ${toCreate.length}, Update: ${toUpdate.length}, Delete: ${toDelete.length}`
         );
-        console.log("Self Appraisal toCreate:", toCreate);
-        console.log("Self Appraisal toUpdate:", toUpdate);
-        console.log("Self Appraisal toDelete:", toDelete);
-        //for all add update and delete operations loop trouh the aray please
-        if (
-          toCreate.length === 0 &&
-          toUpdate.length === 0 &&
-          toDelete.length === 0
-        ) {
-          this.logger.info("No Self Appraisal updates found");
-        } else {
-          this.logger.info(
-            `Self Appraisal updates - Create: ${toCreate.length}, Update: ${toUpdate.length}, Delete: ${toDelete.length}`
-          );
-        }
-        // Create new self appraisals
-        if (toCreate.length > 0) {
-          await this.selfAppraisalService.createMultipleSelfAppraisals(
-            appraisalId,
-            toCreate as any
-          );
-          this.logger.info(`Created ${toCreate.length} self appraisal entries`);
-        }
-        // Update existing self appraisals
-        if (toUpdate.length > 0) {
-          this.logger.info(`Updating ${toUpdate.length} self appraisals`);
-          for (const entry of toUpdate) {
-            const updatedEntry =
-              await this.selfAppraisalService.updateSelfAppraisal(
-                entry.id,
-                entry as any // Assuming entry is compatible with UpdateSelfAppraisalDto
-              );
-            this.logger.info(
-              `Updated Self Appraisal Entry ID: ${updatedEntry}`
+      }
+      // Create new self appraisals
+      if (toCreate.length > 0) {
+        await this.selfAppraisalService.createMultipleSelfAppraisals(
+          appraisalId,
+          toCreate as any
+        );
+        this.logger.info(`Created ${toCreate.length} self appraisal entries`);
+      }
+      // Update existing self appraisals
+      if (toUpdate.length > 0) {
+        this.logger.info(`Updating ${toUpdate.length} self appraisals`);
+        for (const entry of toUpdate) {
+          const updatedEntry =
+            await this.selfAppraisalService.updateSelfAppraisal(
+              entry.id,
+              entry as any // Assuming entry is compatible with UpdateSelfAppraisalDto
             );
-          }
-        }
-        if (toDelete.length > 0) {
-          this.logger.info(`Deleting ${toDelete.length} self appraisals`);
-          for (const entry of toDelete) {
-            await this.selfAppraisalService.deleteEntry(entry);
-            this.logger.info(`Updated Self Appraisal Entry ID: ${entry}`);
-          }
+          this.logger.info(`Updated Self Appraisal Entry ID: ${updatedEntry}`);
         }
       }
+      if (toDelete.length > 0) {
+        this.logger.info(`Deleting ${toDelete.length} self appraisals`);
+        for (const entry of toDelete) {
+          await this.selfAppraisalService.deleteEntry(entry);
+          this.logger.info(`Updated Self Appraisal Entry ID: ${entry}`);
+        }
+      }
+    }
 
-      // Performance Factors
-      if (sanitizedData.performance_factors) {
-        const { toCreate, toUpdate, toDelete } = diffArrayById(
-          existing.performance_factors || [],
-          sanitizedData.performance_factors
-        );
-        //do the same as self appraisal
-        if (toUpdate.length === 0) {
-          this.logger.info("No Performance Factor updates found");
-        } else {
-          this.logger.info(`Updating ${toUpdate.length} performance factors`);
-          for (const factor of toUpdate) {
-            const updatedFactor =
-              await this.performanceFactorServices.updatePerformanceFactor(
-                appraisalId,
-                factor.competency,
-                factor as PerformanceFactor
-              );
-            this.logger.info(
-              `Updated Performance Factor ID: ${updatedFactor.id}`
+    // Performance Factors
+
+    if (sanitizedData.performance_factors) {
+      const { toCreate, toUpdate, toDelete } = diffArrayById(
+        existing.performance_factors || [],
+        sanitizedData.performance_factors
+      );
+      //do the same as self appraisal
+      if (toUpdate.length === 0) {
+        this.logger.info("No Performance Factor updates found");
+      } else {
+        this.logger.info(`Updating ${toUpdate.length} performance factors`);
+        for (const factor of toUpdate) {
+          const updatedFactor =
+            await this.performanceFactorServices.updatePerformanceFactor(
+              appraisalId,
+              factor.competency,
+              factor as PerformanceFactor
             );
-          }
+          this.logger.info(
+            `Updated Performance Factor ID: ${updatedFactor.id}`
+          );
         }
       }
     }
