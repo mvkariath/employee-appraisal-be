@@ -186,6 +186,7 @@ class SelfAppraisalEntryController {
     try {
       const appraisals =
         await this.selfAppraisalEntryService.findAllAppraisalsByLeadId(leadId);
+        this.logger.info(appraisals)
       const filtered = appraisals
         .filter(
           (entry) =>
@@ -196,8 +197,10 @@ class SelfAppraisalEntryController {
         .map((entry) => {
           const employee = entry.appraisal.employee;
           const cycle = entry.appraisal.cycle;
+          const appraisal = entry.appraisal;
 
         return {
+          appraisalId:appraisal?.id,
           name: employee?.name,
           department: employee?.department,
           cycleName: cycle?.name,

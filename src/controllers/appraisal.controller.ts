@@ -87,7 +87,22 @@ class AppraisalController {
       const appraisals = await this.appraisalService.getPastAppraisals(
         Number(req.params.id)
       );
-      res.status(200).json(appraisals);
+      const filtered=appraisals.map((appraisal) => {
+        return{
+           id:appraisal.id,
+        cycle_name: appraisal.cycle.name,
+        employee_name: appraisal.employee.name,
+        startDate:appraisal.cycle.start_date,
+        endDate:appraisal.cycle.end_date,
+        current_status: appraisal.cycle.status,
+        idp: appraisal.idp,
+        performance_factors: appraisal.performance_factors,
+        self_appraisal: appraisal.self_appraisal,
+        }
+       
+    
+      })
+      res.status(200).json(filtered);
     } catch (error) {
       this.logger.error("getPastAppraisals - FAILED" + error);
       next(error);
