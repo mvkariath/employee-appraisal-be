@@ -25,11 +25,7 @@ class AppraisalController {
     );
     router.get("/", this.getAllAppraisals.bind(this));
     router.get("/:id", this.getAppraisalById.bind(this));
-    router.put(
-      "/:id",
-      checkRole([EmployeeRole.HR, EmployeeRole.LEAD]),
-      this.updateAppraisal.bind(this)
-    );
+    router.put("/:id", this.updateAppraisal.bind(this));
     router.get("/past-appraisals/:id", this.getPastAppraisals.bind(this));
     router.get("/in-cycle/:id", this.getAppraisalByCycleId.bind(this));
 
@@ -97,7 +93,7 @@ class AppraisalController {
       next(error);
     }
   }
-  
+
   async pushToLead(req: Request, res: Response, next: NextFunction) {
     try {
       const id = Number(req.params.id);
@@ -175,7 +171,7 @@ class AppraisalController {
         throw new HttpException(400, "Invalid appraisal-cycle ID");
 
       const appraisalData = await this.appraisalService.getAppraisalByCycleId(
-        appraisalCycleId,
+        appraisalCycleId
       );
       res.status(200).json(appraisalData);
     } catch (error) {
