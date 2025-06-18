@@ -237,11 +237,15 @@ class AppraisalService {
       }
     }
     // Self Appraisal
-    this.selfAppraisalService.updateLeads(
-      appraisalId,
-      //@ts-ignore
-      incomingData.appraisalLeads
-    );
+    if (isDev) {
+      {
+        this.selfAppraisalService.updateLeads(
+          appraisalId,
+          //@ts-ignore
+          incomingData.appraisalLeads
+        );
+      }
+    }
     if (sanitizedData.self_appraisal) {
       const { toCreate, toUpdate, toDelete } = diffArrayById(
         existing.self_appraisal || [],
