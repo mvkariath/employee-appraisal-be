@@ -104,9 +104,7 @@ class AppraisalService {
     return await this.appraisalRepository.findAll();
   }
   async getPastAppraisals(id: number): Promise<Appraisal[] | null> {
-    this.logger.info(
-      `getPastAppraisals - START for employee ID: ${id}`
-    );
+    this.logger.info(`getPastAppraisals - START for employee ID: ${id}`);
     if (!id) {
       this.logger.error("Invalid employee ID");
       throw new httpException(400, "Invalid employee ID");
@@ -122,25 +120,35 @@ class AppraisalService {
     }
     return appraisal;
   }
-
- async getAppraisalByCycleId(id: number): Promise<{ appraisalId: number; employee: Employee }[]> {
-  this.logger.info(`getAppraisalById - ID: ${id}`);
-  
-  const appraisals = await this.appraisalRepository.findByCycleId(id);
-
-  if (!appraisals) {
-    this.logger.error("Appraisal not found");
-    throw new httpException(404, "Appraisal not found");
+  async getAppraisalByEmployeeId(id: number): Promise<Appraisal[]> {
+    this.logger.info(`getAppraisalByEmployeeId - ID: ${id}`);
+    const appraisals = await this.appraisalRepository.findByEmployeeId(id);
+    if (!appraisals || appraisals.length === 0) {
+      this.logger.error("No appraisals found for this employee");
+      throw new httpException(404, "No appraisals found for this employee");
+    }
+    return appraisals;
   }
 
-  const result = appraisals.map((appraisal) => ({
-    appraisalId: appraisal.id,
-    employee: appraisal.employee,
-  }));
+  async getAppraisalByCycleId(
+    id: number
+  ): Promise<{ appraisalId: number; employee: Employee }[]> {
+    this.logger.info(`getAppraisalById - ID: ${id}`);
 
-  return result; 
-}
+    const appraisals = await this.appraisalRepository.findByCycleId(id);
 
+    if (!appraisals) {
+      this.logger.error("Appraisal not found");
+      throw new httpException(404, "Appraisal not found");
+    }
+
+    const result = appraisals.map((appraisal) => ({
+      appraisalId: appraisal.id,
+      employee: appraisal.employee,
+    }));
+
+    return result;
+  }
 
   async updateAppraisalById(
     id: number,
@@ -195,6 +203,7 @@ class AppraisalService {
     incomingData: Partial<Appraisal>
   ) {
     const existing = await this.appraisalRepository.findById(appraisalId);
+    console.log("existing", existing);
     const leadIds = existing.appraisalLeads?.map((lead) => lead.lead.id) || [];
     if (!existing) throw new Error("Appraisal not found");
 
@@ -203,7 +212,7 @@ class AppraisalService {
     const isLead =
       role === "LEAD" && existing.appraisalLeads?.some((l) => l.id === userId);
     const isHR = role === "HR";
-
+    console.log(isDev)
     if (!isDev && !isLead && !isHR) throw new Error("Access denied");
 
     const allowedFields = getAllowedFieldsForRole(
@@ -250,23 +259,27 @@ class AppraisalService {
           );
         }
         // Create new self appraisals
-       if (toCreate.length > 0) {
-      const createPayload = toCreate.map(entry => ({
-        ...entry,
-        appraisalId,
-      })) as CreateSelfAppraisalDto[];
+        if (toCreate.length > 0) {
+          const createPayload = toCreate.map((entry) => ({
+            ...entry,
+            appraisalId,
+          })) as CreateSelfAppraisalDto[];
 
-      await this.selfAppraisalService.createMultipleSelfAppraisals(createPayload,leadIds);
-      this.logger.info(`Created ${toCreate.length} self appraisal entries`);
-    }
+          await this.selfAppraisalService.createMultipleSelfAppraisals(
+            createPayload,
+            leadIds
+          );
+          this.logger.info(`Created ${toCreate.length} self appraisal entries`);
+        }
         // Update existing self appraisals
         if (toUpdate.length > 0) {
           this.logger.info(`Updating ${toUpdate.length} self appraisals`);
           for (const entry of toUpdate) {
-            const updatedEntry = await this.selfAppraisalService.updateEntryByAppraisalId(
-              entry.id,
-              entry as any // Assuming entry is compatible with UpdateSelfAppraisalDto
-            );
+            const updatedEntry =
+              await this.selfAppraisalService.updateEntryByAppraisalId(
+                entry.id,
+                entry as any // Assuming entry is compatible with UpdateSelfAppraisalDto
+              );
             this.logger.info(`Updated Self Appraisal Entry ID: ${entry.id}`);
           }
         }
