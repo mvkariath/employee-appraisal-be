@@ -3,7 +3,7 @@ import AppraisalRepository from "../repositories/appraisal.repository";
 import httpException from "../exceptions/httpExceptions";
 import { LoggerService } from "./logger.service";
 import AppraisalCycle from "../entities/AppraisalCycle.entity";
-import Employee from "../entities/employee.entity";
+import Employee, { EmployeeRole } from "../entities/employee.entity";
 import {
   IndividualDevelopmentPlan,
   IDP_Competency,
@@ -19,6 +19,7 @@ import SelfAppraisalEntryService from "./selfAppraisal.service";
 import { IDPService } from "./idp.services";
 import CreateSelfAppraisalDto from "../dto/create-selfAppraisal.dto";
 import { EntityRepository } from "typeorm";
+import accessLevelValidations from "../utils/accessLevelValidations";
 function getAllowedFieldsForRole(role: string, status: string): string[] {
   const rules = {
     HR: ["idp", "self_appraisal", "performance_factors"],
@@ -42,6 +43,150 @@ function filterFieldsByRole(input: any, allowedFields: string[]) {
 }
 class AppraisalService {
   private logger = LoggerService.getInstance("AppraisalService");
+  // Helper methods
+  private initializeChangesTracker(role: string) {
+    return {
+      updatedBy: role,
+      idpUpdated: 0,
+      selfAppraisal: { created: 0, updated: 0, deleted: 0 },
+      performanceFactors: { updated: 0 },
+      leadsUpdated: false,
+    };
+  }
+
+  private async processUpdates(
+    appraisalId: number,
+    sanitizedData: Partial<Appraisal>,
+    existing: Appraisal,
+    changes: any,
+    isEmployeeAccessible: boolean,
+    incomingData: Partial<Appraisal>
+  ) {
+    // Process IDP updates
+    if (sanitizedData.idp) {
+      changes.idpUpdated = await this.processIdpUpdates(
+        existing.idp || [],
+        sanitizedData.idp
+      );
+    }
+
+    // Process lead assignment
+    if (isEmployeeAccessible && incomingData.appraisalLeads) {
+      changes.leadsUpdated = await this.processLeadUpdates(
+        appraisalId,
+        incomingData.appraisalLeads
+      );
+    }
+
+    // Process self appraisal
+    if (sanitizedData.self_appraisal) {
+      const selfAppraisalChanges = await this.processSelfAppraisalUpdates(
+        appraisalId,
+        existing.self_appraisal || [],
+        sanitizedData.self_appraisal
+      );
+      Object.assign(changes.selfAppraisal, selfAppraisalChanges);
+    }
+
+    // Process performance factors
+    if (sanitizedData.performance_factors) {
+      changes.performanceFactors.updated =
+        await this.processPerformanceFactorUpdates(
+          appraisalId,
+          existing.performance_factors || [],
+          sanitizedData.performance_factors
+        );
+    }
+  }
+
+  private async processIdpUpdates(
+    existingIdps: any[],
+    newIdps: any[]
+  ): Promise<number> {
+    const { toUpdate } = diffArrayById(existingIdps, newIdps);
+    if (toUpdate.length === 0) return 0;
+
+    for (const idp of toUpdate) {
+      await this.idpService.updateIDP(idp.id, idp as IndividualDevelopmentPlan);
+      this.logger.info(`Updated IDP with ID ${idp.id}`);
+    }
+    return toUpdate.length;
+  }
+
+  private async processLeadUpdates(
+    appraisalId: number,
+    newLeads: any[]
+  ): Promise<boolean> {
+    await this.selfAppraisalService.updateLeads(appraisalId, newLeads);
+    this.logger.info(`Updated Leads for appraisal ID: ${appraisalId}`);
+    return true;
+  }
+
+  private async processSelfAppraisalUpdates(
+    appraisalId: number,
+    existingSelfAppraisals: any[],
+    newSelfAppraisals: any[]
+  ): Promise<{ created: number; updated: number; deleted: number }> {
+    const changes = { created: 0, updated: 0, deleted: 0 };
+    const { toCreate, toUpdate, toDelete } = diffArrayById(
+      existingSelfAppraisals,
+      newSelfAppraisals
+    );
+
+    if (toCreate.length > 0) {
+      await this.selfAppraisalService.createMultipleSelfAppraisals(
+        appraisalId,
+        toCreate as any
+      );
+      this.logger.info(`Created ${toCreate.length} self appraisal entries`);
+      changes.created = toCreate.length;
+    }
+
+    if (toUpdate.length > 0) {
+      for (const entry of toUpdate) {
+        await this.selfAppraisalService.updateSelfAppraisal(entry.id, entry);
+        this.logger.info(`Updated Self Appraisal Entry ID: ${entry.id}`);
+      }
+      changes.updated = toUpdate.length;
+    }
+
+    if (toDelete.length > 0) {
+      for (const entry of toDelete) {
+        await this.selfAppraisalService.deleteEntry(entry);
+        this.logger.info(`Deleted Self Appraisal Entry ID: ${entry}`);
+      }
+      changes.deleted = toDelete.length;
+    }
+
+    return changes;
+  }
+
+  private async processPerformanceFactorUpdates(
+    appraisalId: number,
+    existingFactors: any[],
+    newFactors: any[]
+  ): Promise<number> {
+    const { toUpdate } = diffArrayById(existingFactors, newFactors);
+    if (toUpdate.length === 0) return 0;
+
+    for (const factor of toUpdate) {
+      await this.performanceFactorServices.updatePerformanceFactor(
+        appraisalId,
+        factor.competency,
+        factor as PerformanceFactor
+      );
+      this.logger.info(`Updated Performance Factor ID: ${factor.id}`);
+    }
+    return toUpdate.length;
+  }
+
+  private logSummary(appraisalId: number, role: string, changes: any) {
+    this.logger.info(
+      `Appraisal [${appraisalId}] updated by ${role}. Summary: ${JSON.stringify(
+        changes
+      )}`
+    );
+  }
 
   constructor(
     private appraisalRepository: AppraisalRepository,
@@ -198,139 +343,62 @@ class AppraisalService {
     userId: number,
     role: string,
     incomingData: Partial<Appraisal>
-  ) {
+  ): Promise<{
+    message: string;
+    updatedBy: string;
+    idpUpdated: number;
+    selfAppraisal: { created: number; updated: number; deleted: number };
+    performanceFactors: { updated: number };
+    leadsUpdated: boolean;
+  }> {
     const existing = await this.appraisalRepository.findById(appraisalId);
-    const leadIds = existing.appraisalLeads?.map((lead) => lead.lead.id) || [];
     if (!existing) throw new Error("Appraisal not found");
 
-    // Authorization check (assumes same logic as fetchFormData)
-    const isDev = role === "DEVELOPER" && existing.employee.id === userId;
-    const isLead =
-      role === "LEAD" &&
-      existing.appraisalLeads?.some((l) => l.lead.id === userId);
-    if (role === "LEAD" && !isLead) {
-      this.logger.error(
-        `updateFormData - ACCESS DENIED: Appraisal ID: ${appraisalId}, User ID: ${userId}, Role: ${role}`
-      );
-      throw new httpException(
-        403,
-        "This form is not yet accessible to this lead"
-      );
-    }
-    const isHR = role === "HR";
+    const leadIds = existing.appraisalLeads?.map((lead) => lead.lead.id) || [];
 
-    if (!isDev && !isLead && !isHR) throw new Error("Access denied");
+    // Authorization check
+    const { isEmployeeAccessible } = accessLevelValidations(
+      role as EmployeeRole,
+      existing.employee.id,
+      userId,
+      leadIds,
+      this.logger,
+      appraisalId
+    );
 
+    // Sanitize input
     const allowedFields = getAllowedFieldsForRole(
       role,
       existing.current_status
     );
     const sanitizedData = filterFieldsByRole(incomingData, allowedFields);
+    this.logger.info("Sanitized Data:" + sanitizedData);
 
-    // IDP diff and update
-    if (sanitizedData.idp) {
-      const { toUpdate } = diffArrayById(existing.idp || [], sanitizedData.idp);
-      // we are using the updat service because add and delete does not happen when we update the form as it is initlaly created
-      if (toUpdate.length === 0) {
-        this.logger.info("No IDP updates found");
-      } else {
-        this.logger.info(`Updating ${toUpdate.length} IDP entries`);
-        //loop throught toUpdate and update each IDP
-        for (const idp of toUpdate) {
-          const updatedIdp = await this.idpService.updateIDP(
-            idp.id,
-            idp as IndividualDevelopmentPlan
-          );
-          this.logger.info(`Updated IDP with ID ${updatedIdp.id}`);
-        }
-      }
-    }
-    // Self Appraisal
-    if (isDev) {
-      {
-        this.selfAppraisalService.updateLeads(
-          appraisalId,
-          //@ts-ignore
-          incomingData.appraisalLeads
-        );
-      }
-    }
-    if (sanitizedData.self_appraisal) {
-      const { toCreate, toUpdate, toDelete } = diffArrayById(
-        existing.self_appraisal || [],
-        sanitizedData.self_appraisal
-      );
+    // Initialize changes tracker
+    const changes = this.initializeChangesTracker(role);
 
-      //for all add update and delete operations loop trouh the aray please
-      if (
-        toCreate.length === 0 &&
-        toUpdate.length === 0 &&
-        toDelete.length === 0
-      ) {
-        this.logger.info("No Self Appraisal updates found");
-      } else {
-        this.logger.info(
-          `Self Appraisal updates - Create: ${toCreate.length}, Update: ${toUpdate.length}, Delete: ${toDelete.length}`
-        );
-      }
-      // Create new self appraisals
-      if (toCreate.length > 0) {
-        await this.selfAppraisalService.createMultipleSelfAppraisals(
-          appraisalId,
-          toCreate as any
-        );
-        this.logger.info(`Created ${toCreate.length} self appraisal entries`);
-      }
-      // Update existing self appraisals
-      if (toUpdate.length > 0) {
-        this.logger.info(`Updating ${toUpdate.length} self appraisals`);
-        for (const entry of toUpdate) {
-          const updatedEntry =
-            await this.selfAppraisalService.updateSelfAppraisal(
-              entry.id,
-              entry as any // Assuming entry is compatible with UpdateSelfAppraisalDto
-            );
-          this.logger.info(`Updated Self Appraisal Entry ID: ${updatedEntry}`);
-        }
-      }
-      if (toDelete.length > 0) {
-        this.logger.info(`Deleting ${toDelete.length} self appraisals`);
-        for (const entry of toDelete) {
-          await this.selfAppraisalService.deleteEntry(entry);
-          this.logger.info(`Updated Self Appraisal Entry ID: ${entry}`);
-        }
-      }
-    }
+    // Process updates based on sanitized data
+    await this.processUpdates(
+      appraisalId,
+      sanitizedData,
+      existing,
+      changes,
+      isEmployeeAccessible,
+      incomingData
+    );
 
-    // Performance Factors
+    // Log summary
+    this.logSummary(appraisalId, role, changes);
 
-    if (sanitizedData.performance_factors) {
-      const { toCreate, toUpdate, toDelete } = diffArrayById(
-        existing.performance_factors || [],
-        sanitizedData.performance_factors
-      );
-      //do the same as self appraisal
-      if (toUpdate.length === 0) {
-        this.logger.info("No Performance Factor updates found");
-      } else {
-        this.logger.info(`Updating ${toUpdate.length} performance factors`);
-        for (const factor of toUpdate) {
-          const updatedFactor =
-            await this.performanceFactorServices.updatePerformanceFactor(
-              appraisalId,
-              factor.competency,
-              factor as PerformanceFactor
-            );
-          this.logger.info(
-            `Updated Performance Factor ID: ${updatedFactor.id}`
-          );
-        }
-      }
-    }
-
-    return { message: "Form data updated successfully" };
+    return {
+      message: "Appraisal form updated successfully",
+      ...changes,
+    };
   }
   async fetchFormData(appraisalId: number, userId: number, userRole: string) {
+    {
+      /*fetch data from the repo layer*/
+    }
     const appraisal = await this.appraisalRepository.findById(appraisalId);
     if (!appraisal) {
       this.logger.error(`Appraisal with ID ${appraisalId} not found`);
@@ -342,34 +410,24 @@ class AppraisalService {
     this.logger.info(
       `fetchFormData - Appraisal ID: ${appraisalId}, Role: ${userRole}`
     );
-    console.log(appraisal.appraisalLeads);
-    //check if the user has the access to view the form
-    const isEmployeeAccessible =
-      appraisal.employee?.id === userId && userRole === "DEVELOPER";
-    const isLeadAccessible =
-      appraisal.appraisalLeads?.some((lead) => lead.lead.id === userId) &&
-      userRole === "LEAD";
-    if (userRole === "LEAD" && !isLeadAccessible) {
-      this.logger.error(
-        `updateFormData - ACCESS DENIED: Appraisal ID: ${appraisalId}, User ID: ${userId}, Role: ${userRole}`
-      );
-      throw new httpException(
-        403,
-        "This form is not yet accessible to this lead"
-      );
-    }
-    const isHRAccessible = userRole === "HR";
-    if (!isEmployeeAccessible && !isLeadAccessible && !isHRAccessible) {
-      this.logger.error(
-        `fetchFormData - ACCESS DENIED: Appraisal ID: ${appraisalId}, User ID: ${userId}, Role: ${userRole}`
-      );
-      throw new httpException(403, "Access denied");
+
+    {
+      /*Authorization logic*/
     }
 
-    const isHR = userRole === "HR";
-    const isLead = userRole === "LEAD";
-    const isDev = userRole === "DEVELOPER";
+    const { isEmployeeAccessible, isLeadAccessible, isHRAccessible } =
+      accessLevelValidations(
+        userRole as EmployeeRole,
+        appraisal.employee.id,
+        userId,
+        appraisal.appraisalLeads?.map((lead) => lead.lead.id) || [],
+        this.logger,
+        appraisalId
+      );
 
+    {
+      /*Prepare the base data structure*/
+    }
     const baseData: any = {
       id: appraisal.id,
       current_status: appraisal.current_status,
@@ -380,8 +438,7 @@ class AppraisalService {
       visible_fields: [],
     };
 
-    if (isHR) {
-      // HR sees everything
+    if (isHRAccessible) {
       return {
         ...baseData,
         visible_fields: [
@@ -412,7 +469,7 @@ class AppraisalService {
       };
     }
 
-    if (isDev) {
+    if (isEmployeeAccessible) {
       baseData.visible_fields.push("self_appraisal", "appraisalLeads");
       baseData.self_appraisal = appraisal.self_appraisal || [];
       baseData.appraisalLeads = appraisal.appraisalLeads || [];
@@ -420,7 +477,7 @@ class AppraisalService {
       return baseData;
     }
 
-    if (isLead) {
+    if (isLeadAccessible) {
       baseData.visible_fields.push("self_appraisal", "performance_factors");
       baseData.self_appraisal = appraisal.self_appraisal || [];
       baseData.performance_factors = appraisal.performance_factors?.map(
@@ -445,8 +502,6 @@ class AppraisalService {
       }
       return baseData;
     }
-
-    // Default fallback (e.g., Lead in INITIATED phase, etc.)
     return baseData;
   }
 }
