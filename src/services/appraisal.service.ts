@@ -193,7 +193,7 @@ class AppraisalService {
     private performanceFactorServices: PerformanceFactorService,
     private idpService: IDPService,
     private selfAppraisalService: SelfAppraisalEntryService
-  ) {}
+  ) { }
 
   async createAppraisals(data: {
     employeeIds: number[];
@@ -509,6 +509,26 @@ class AppraisalService {
     }
 
     if (isEmployeeAccessible) {
+      if (appraisal.current_status === Status.ALL_DONE) {
+        baseData.visible_fields.push("performance_factors", "idp");
+        baseData.performance_factors = appraisal.performance_factors?.map(
+          ({ id, competency, strengths, improvements, rating }) => ({
+            id,
+            competency,
+            strengths,
+            improvements,
+            rating,
+          })
+        );
+        baseData.idp = appraisal.idp?.map(
+          ({ id, competency, technical_objective, technical_plan }) => ({
+            id,
+            competency,
+            technical_objective,
+            technical_plan,
+          })
+        )
+      }
       baseData.visible_fields.push("self_appraisal", "appraisalLeads");
       baseData.self_appraisal = appraisal.self_appraisal || [];
       baseData.appraisalLeads = appraisal.appraisalLeads || [];
@@ -517,8 +537,24 @@ class AppraisalService {
     }
 
     if (isLeadAccessible) {
-      baseData.visible_fields.push("self_appraisal", "performance_factors");
-      baseData.self_appraisal = appraisal.self_appraisal || [];
+      if ([Status.INITIATE_FEEDBACK, Status.FEEDBACK_SUBMITTED, Status.MEETING_DONE, Status.DONE, Status.ALL_DONE].includes(appraisal.current_status)) {
+        baseData.visible_fields.push("self_appraisal", "appraisalLeads")
+        baseData.self_appraisal = appraisal.self_appraisal || [];
+        baseData.appraisalLeads = appraisal.appraisalLeads || [];
+
+      }
+      if ([Status.FEEDBACK_SUBMITTED, Status.MEETING_DONE, Status.DONE, Status.ALL_DONE].includes(appraisal.current_status)) {
+        baseData.visible_fields.push("idp")
+        baseData.idp = appraisal.idp?.map(
+          ({ id, competency, technical_objective, technical_plan }) => ({
+            id,
+            competency,
+            technical_objective,
+            technical_plan,
+          })
+        )
+      }
+      baseData.visible_fields.push("performance_factors");
       baseData.performance_factors = appraisal.performance_factors?.map(
         ({ id, competency, strengths, improvements, rating }) => ({
           id,
@@ -528,17 +564,6 @@ class AppraisalService {
           rating,
         })
       );
-      if (appraisal.current_status === "FEEDBACK_SUBMITTED") {
-        baseData.visible_fields.push("idp");
-        baseData.idp = appraisal.idp?.map(
-          ({ id, competency, technical_objective, technical_plan }) => ({
-            id,
-            competency,
-            technical_objective,
-            technical_plan,
-          })
-        );
-      }
       return baseData;
     }
     return baseData;
