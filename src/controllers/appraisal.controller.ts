@@ -33,7 +33,7 @@ class AppraisalController {
       checkRole([EmployeeRole.HR]),
       this.updateAppraisalStatus.bind(this)
     );
-
+    router.get("/appraisal/employee/:id", this.getAppraisalByEmployeeId.bind(this));
     router.delete(
       "/:id",
       checkRole([EmployeeRole.HR]),
@@ -150,6 +150,20 @@ class AppraisalController {
       res.status(200).json({ message: "Appraisal status updated", updated });
     } catch (error) {
       this.logger.error("updateAppraisalStatus - FAILED" + error);
+      next(error);
+    }
+  }
+  async getAppraisalByEmployeeId(req: Request, res: Response, next: NextFunction) {
+    try {
+      const employeeId = Number(req.params.id);
+      if (isNaN(employeeId)) throw new HttpException(400, "Invalid employee ID");
+      const appraisals = await this.appraisalService.getAppraisalByEmployeeId(
+        employeeId
+      );
+      res.status(200).json(appraisals);
+      console.log("HELLO");
+    } catch (error) {
+      this.logger.error("getAppraisalByEmployeeId - FAILED" + error);
       next(error);
     }
   }

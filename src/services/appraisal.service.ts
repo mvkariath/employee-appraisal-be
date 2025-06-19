@@ -267,8 +267,19 @@ class AppraisalService {
     }
     return appraisal;
   }
+  async getAppraisalByEmployeeId(id: number): Promise<Appraisal[]> {
+    this.logger.info(`getAppraisalByEmployeeId - ID: ${id}`);
+    const appraisals = await this.appraisalRepository.findByEmployeeId(id);
+    if (!appraisals || appraisals.length === 0) {
+      this.logger.error("No appraisals found for this employee");
+      throw new httpException(404, "No appraisals found for this employee");
+    }
+    return appraisals;
+  }
 
-  async getAppraisalByCycleId(id: number): Promise<any> {
+  async getAppraisalByCycleId(
+    id: number
+  ): Promise<any> {
     this.logger.info(`getAppraisalById - ID: ${id}`);
 
     const appraisals = await this.appraisalRepository.findByCycleId(id);
