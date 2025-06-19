@@ -7,8 +7,10 @@ import CreateSelfAppraisalDto from "../dto/create-selfAppraisal.dto";
 import { LoggerService } from "../services/logger.service";
 import HttpException from "../exceptions/httpExceptions";
 import { checkRole } from "../middlewares/authorization.middleware";
-import { EmployeeRole } from "../entities/employee.entity";
+import { EmployeeRole, } from "../entities/employee.entity";
 import { SelfAppraisalEntry } from "../entities/SelfAppraisal.entity";
+import { Status } from "../entities/Appraisal.entity";
+import { Status as CycleStatus } from "../entities/AppraisalCycle.entity";
 
 class SelfAppraisalEntryController {
   private logger = LoggerService.getInstance("SelfAppraisalEntryController");
@@ -28,7 +30,8 @@ class SelfAppraisalEntryController {
       this.createManySelfAppraisal.bind(this)
     );
     router.get("/", this.getAllEntries.bind(this));
-    router.get("/get-appraisals-of-lead/", checkRole([EmployeeRole.LEAD]), this.getAllAppraisalsByLeadId.bind(this));
+    router.get("/get-appraisals-of-lead/:leadId", checkRole([EmployeeRole.LEAD]), this.getAllAppraisalsByLeadId.bind(this));
+    router.get("/get-completed-appraisals-of-lead/:leadId", checkRole([EmployeeRole.LEAD]), this.getCompletedAppraisalsByLeadId.bind(this));
     router.get("/:id", this.getEntryById.bind(this));
     router.get(
       "/by-appraisal/:appraisalId",
@@ -178,8 +181,8 @@ class SelfAppraisalEntryController {
   }
 
   async getAllAppraisalsByLeadId(req: any, res: any) {
-    const leadId = req.user.id;
-    console.log(leadId)
+    const leadId = req.params.leadId;
+   
     if (isNaN(leadId)) {
       return res.status(400).json({ error: "Invalid lead ID" });
     }
@@ -194,6 +197,47 @@ class SelfAppraisalEntryController {
             Array.isArray(entry.appraisal.performance_factors) &&
             entry.appraisal.performance_factors.length > 0
         )
+        .map((entry) => {
+          const employee = entry.appraisal.employee;
+          const cycle = entry.appraisal.cycle;
+          const appraisal = entry.appraisal;
+
+        return {
+          appraisalId:appraisal?.id,
+          name: employee?.name,
+          department: employee?.department,
+          cycleName: cycle?.name,
+          startDate: cycle?.start_date,
+          endDate: cycle?.end_date
+        };
+      });
+
+      return res.status(200).json(filtered);
+    } catch (error) {
+      console.error("Error fetching appraisals:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  }
+    async getCompletedAppraisalsByLeadId(req: any, res: any) {
+    const leadId = req.params.leadId;
+   
+    if (isNaN(leadId)) {
+      return res.status(400).json({ error: "Invalid lead ID" });
+    }
+    try {
+      const appraisals =
+        await this.selfAppraisalEntryService.findAllAppraisalsByLeadId(leadId);
+      //  this.logger.info(appraisals)
+      const filtered = appraisals
+        .filter(
+          (entry) =>
+            entry.appraisal &&
+            Array.isArray(entry.appraisal.performance_factors) &&
+            entry.appraisal.performance_factors.length > 0 && 
+            entry.appraisal.current_status === Status.FEEDBACK_SUBMITTED &&
+            entry.appraisal.cycle.status !== CycleStatus.COMPLETED
+
+          )
         .map((entry) => {
           const employee = entry.appraisal.employee;
           const cycle = entry.appraisal.cycle;
