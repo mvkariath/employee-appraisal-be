@@ -13,6 +13,7 @@ import selfAppraisalEntryRouter from "./routes/selfAppraisal.route";
 import auditLogRouter from "./routes/auditLog.route";
 import { performanceFactorsRouter } from "./routes/performance-factors.route";
 import chatbotRouter from "./routes/chatbot.route";
+import dashboardMetricsRouter from "./routes/dashboardMetric.route";
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use("/self-appraisal", authMiddleware, selfAppraisalEntryRouter);
 app.use("/audit-log", auditLogRouter);
 app.use("/performance_factors", authMiddleware, performanceFactorsRouter);
 app.use("/auth", authRouter);
+app.use("/dashboard-metrics",authMiddleware, dashboardMetricsRouter);
 
 app.use(errorHandlineMiddleware);
 
