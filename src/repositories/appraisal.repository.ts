@@ -1,4 +1,4 @@
-import { Repository } from "typeorm";
+import { In, Repository } from "typeorm";
 import { Appraisal, Status } from "../entities/Appraisal.entity";
 
 class AppraisalRepository {
@@ -33,21 +33,41 @@ class AppraisalRepository {
       ],
     });
   }
-async findPastAppraisal(id: number): Promise<Appraisal[]| null> {
-  return this.repository.find({
-    where: {
-      employee: { id: id },
-       current_status: Status.ALL_DONE ,
-    },
-    relations: [
-      "employee",
-      "cycle",
-      "idp",
-      "performance_factors",
-      "self_appraisal",
-    ],
-  });
-}
+
+  async findPastAppraisal(id: number): Promise<Appraisal[]| null> {
+    return this.repository.find({
+      where: {
+        employee: { id: id },
+        current_status: Status.ALL_DONE ,
+      },
+      relations: [
+        "employee",
+        "cycle",
+        "idp",
+        "performance_factors",
+        "self_appraisal",
+      ],
+    });
+  }
+
+  async findLastNCompletedForEmployee(employeeId: number, limit: number = 5): Promise<Appraisal[]> {
+    return this.repository.find({
+        where: {
+            employee: { id: employeeId },
+            current_status: In([Status.DONE, Status.MEETING_DONE])
+        },
+        relations: [
+            "cycle",
+            "performance_factors"
+        ],
+        order: {
+            cycle: {
+                end_date: 'DESC'
+            }
+        },
+        take: limit
+    });
+  }
 
   async findByEmployeeId(employeeId: number): Promise<Appraisal[]> {
     return this.repository.find({
