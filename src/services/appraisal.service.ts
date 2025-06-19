@@ -292,9 +292,9 @@ class AppraisalService {
     return employeesWithAppraisal;
   }
 
-  async updateAppraisalById(
+  async updateAppraisalStatus(
     id: number,
-    data: Partial<Appraisal>
+    request_status: Status
   ): Promise<void> {
     this.logger.info(`updateAppraisalById - ID: ${id}`);
     const existing = await this.appraisalRepository.findById(id);
@@ -303,7 +303,23 @@ class AppraisalService {
       throw new httpException(404, "Appraisal not found");
     }
 
-    Object.assign(existing, data);
+    // here we need to check wthere the exisint and new status obeys hierecarhy as in one comes after the other and not able to jump or skip one staus
+    const availableStatus = Object.values(Status);
+    if (!availableStatus.includes(request_status)) {
+      this.logger.error("Invalid status");
+      throw new httpException(400, "Invalid status");
+    } else {
+      //if index of incoming is one greater that hte current one then allow
+      const currentIndex = availableStatus.indexOf(existing.current_status);
+      const incomingIndex = availableStatus.indexOf(request_status);
+      if (Math.abs(incomingIndex - currentIndex) === 1) {
+        this.logger.info("Status transition is valid");
+      } else {
+        this.logger.error("Invalid status transition");
+        throw new httpException(400, "Invalid status transition");
+      }
+    }
+    existing.current_status = request_status || existing.current_status;
     await this.appraisalRepository.update(id, existing);
     this.logger.info(`Appraisal updated: ${id}`);
   }
@@ -321,6 +337,7 @@ class AppraisalService {
         newPerformanceFactor
       );
     }
+    this.updateAppraisalStatus(appraisal.id, Status.INITIATE_FEEDBACK);
   }
 
   async deleteAppraisalById(id: number): Promise<void> {
@@ -342,7 +359,7 @@ class AppraisalService {
     appraisalId: number,
     userId: number,
     role: string,
-    incomingData: Partial<Appraisal>
+    incomingData: Partial<Appraisal> & { save_type?: "draft" | "submit" }
   ): Promise<{
     message: string;
     updatedBy: string;
@@ -355,7 +372,10 @@ class AppraisalService {
     if (!existing) throw new Error("Appraisal not found");
 
     const leadIds = existing.appraisalLeads?.map((lead) => lead.lead.id) || [];
+    const current_status = existing.current_status;
 
+    //save- type ? submit -- state changes service
+    console.log(incomingData.save_type, "saveType");
     // Authorization check
     const { isEmployeeAccessible } = accessLevelValidations(
       role as EmployeeRole,
@@ -386,6 +406,25 @@ class AppraisalService {
       isEmployeeAccessible,
       incomingData
     );
+    //we update the state here
+    if (incomingData.save_type === "submit") {
+      this.logger.info(`changing status: ${appraisalId}`);
+      //call the function to compute the new state and then change state
+      //case -1 role is developer and then he submits his form
+      if (role === "DEVELOPER" && current_status === Status.INITIATED) {
+        this.updateAppraisalStatus(appraisalId, Status.SELF_APPRAISED);
+      }
+      //case -2 role is lead and then he submits his form
+      if (role === "LEAD" && current_status === Status.INITIATE_FEEDBACK) {
+        this.updateAppraisalStatus(appraisalId, Status.FEEDBACK_SUBMITTED);
+      } //case -3 role is HR  or lead and then he submits his idp form;
+      if (
+        (role === "HR" || role === "LEAD") &&
+        current_status === Status.FEEDBACK_SUBMITTED
+      ) {
+        this.updateAppraisalStatus(appraisalId, Status.MEETING_DONE);
+      }
+    }
 
     // Log summary
     this.logSummary(appraisalId, role, changes);

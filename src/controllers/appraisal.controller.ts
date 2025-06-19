@@ -28,6 +28,11 @@ class AppraisalController {
     router.put("/:id", this.updateAppraisal.bind(this));
     router.get("/past-appraisals/:id", this.getPastAppraisals.bind(this));
     router.get("/in-cycle/:id", this.getAppraisalByCycleId.bind(this));
+    router.put(
+      "/status/:id",
+      checkRole([EmployeeRole.HR]),
+      this.updateAppraisalStatus.bind(this)
+    );
 
     router.delete(
       "/:id",
@@ -87,21 +92,19 @@ class AppraisalController {
       const appraisals = await this.appraisalService.getPastAppraisals(
         Number(req.params.id)
       );
-      const filtered=appraisals.map((appraisal) => {
-        return{
-           id:appraisal.id,
-        cycle_name: appraisal.cycle.name,
-        employee_name: appraisal.employee.name,
-        startDate:appraisal.cycle.start_date,
-        endDate:appraisal.cycle.end_date,
-        current_status: appraisal.cycle.status,
-        idp: appraisal.idp,
-        performance_factors: appraisal.performance_factors,
-        self_appraisal: appraisal.self_appraisal,
-        }
-       
-    
-      })
+      const filtered = appraisals.map((appraisal) => {
+        return {
+          id: appraisal.id,
+          cycle_name: appraisal.cycle.name,
+          employee_name: appraisal.employee.name,
+          startDate: appraisal.cycle.start_date,
+          endDate: appraisal.cycle.end_date,
+          current_status: appraisal.cycle.status,
+          idp: appraisal.idp,
+          performance_factors: appraisal.performance_factors,
+          self_appraisal: appraisal.self_appraisal,
+        };
+      });
       res.status(200).json(filtered);
     } catch (error) {
       this.logger.error("getPastAppraisals - FAILED" + error);
@@ -132,6 +135,24 @@ class AppraisalController {
   //     next(error);
   //   }
   // }
+
+  async updateAppraisalStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) throw new HttpException(400, "Invalid appraisal ID");
+      const { status } = req.body;
+      if (!status) throw new HttpException(400, "Status is required");
+
+      const updated = await this.appraisalService.updateAppraisalStatus(
+        id,
+        status
+      );
+      res.status(200).json({ message: "Appraisal status updated", updated });
+    } catch (error) {
+      this.logger.error("updateAppraisalStatus - FAILED" + error);
+      next(error);
+    }
+  }
 
   async updateAppraisal(req: Request, res: Response, next: NextFunction) {
     try {
