@@ -1,4 +1,4 @@
-import { Repository } from "typeorm";
+import { Not, Repository } from "typeorm";
 import { Appraisal, Status } from "../entities/Appraisal.entity";
 
 class AppraisalRepository {
@@ -70,6 +70,51 @@ async findPastAppraisal(id: number): Promise<Appraisal[]| null> {
   async remove(appraisal: Appraisal): Promise<void> {
     await this.repository.softRemove(appraisal);
   }
+
+  async countCompleted(): Promise<number> {
+  return this.repository.count({
+    where: { current_status: Status.ALL_DONE },
+  });
 }
+
+// Count all pending/in-progress appraisals
+async countPending(): Promise<number> {
+  return this.repository.count({
+    where: { current_status: Not(Status.ALL_DONE) },
+  });
+}
+
+async findCurrentAppraisalNameByEmployee(employeeId: number): Promise<string | null> {
+  const result = await this.repository
+    .createQueryBuilder("appraisal")
+    .leftJoin("appraisal.cycle", "cycle")
+    .select("cycle.name", "name")
+    .where("appraisal.employee.id = :employeeId", { employeeId })
+    .andWhere("appraisal.current_status != :status", { status: Status.ALL_DONE })
+    .orderBy("cycle.start_date", "DESC")
+    .limit(1)
+    .getRawOne();
+
+  return result?.name || null;
+}
+
+
+async findLastCompletedAppraisalNameByEmployee(employeeId: number): Promise<string | null> {
+  const result = await this.repository
+    .createQueryBuilder("appraisal")
+    .leftJoin("appraisal.cycle", "cycle")
+    .select("cycle.name", "name")
+    .where("appraisal.employee.id = :employeeId", { employeeId })
+    .andWhere("appraisal.current_status = :status", { status: Status.ALL_DONE })
+    .orderBy("cycle.start_date", "DESC")
+    .limit(1)
+    .getRawOne();
+
+  return result?.name || null;
+}
+
+}
+
+
 
 export default AppraisalRepository;
