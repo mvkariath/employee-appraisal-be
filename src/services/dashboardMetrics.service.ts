@@ -17,11 +17,11 @@ class dashboardMetrics {
         lastAppraisal: await this.appraisalRepository.findLastCompletedAppraisalNameByEmployee(userId),
       };
 
-    // case "LEAD":
-    //   return {
-    //     teamPendingSubmissions: await this.appraisalRepository.countTeamPending(userId),
-    //     appraisalsToReview: await this.appraisalRepository.countTeamAppraisalsToReview(userId),
-    //   };
+    case "LEAD":
+      return {
+        teamPendingSubmissions: await this.appraisalRepository.countTeamPending(userId),
+        appraisalsToReview: await this.appraisalRepository.countTeamAppraisalsToReview(userId),
+      };
 
     case "HR":
       return {

@@ -54,6 +54,25 @@ async findPastAppraisal(id: number): Promise<Appraisal[] | null> {
     .getMany();
 }
 
+async countTeamPending(leadId: number): Promise<number> {
+  return this.repository
+    .createQueryBuilder("appraisal")
+    .innerJoin("appraisal.appraisalLeads", "appraisalLeads")
+    .where("appraisalLeads.lead = :leadId", { leadId })
+    .andWhere("appraisal.current_status = :status", { status: Status.INITIATED })
+    .getCount();
+}
+
+async countTeamAppraisalsToReview(leadId: number): Promise<number> {
+  return this.repository
+    .createQueryBuilder("appraisal")
+    .innerJoin("appraisal.appraisalLeads", "lead")
+    .where("lead.lead = :leadId", { leadId })
+    .andWhere("appraisal.current_status IN (:...statuses)", {
+      statuses: [Status.SELF_APPRAISED, Status.INITIATE_FEEDBACK],
+    })
+    .getCount();
+}
 
 
   async findByEmployeeId(employeeId: number): Promise<Appraisal[]> {
