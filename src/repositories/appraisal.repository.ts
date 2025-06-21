@@ -42,8 +42,7 @@ async findPastAppraisal(id: number): Promise<Appraisal[] | null> {
     .leftJoinAndSelect("appraisal.performance_factors", "performance_factors")
     .leftJoinAndSelect("appraisal.self_appraisal", "self_appraisal")
     .leftJoinAndSelect("appraisal.appraisalLeads", "appraisalLeads")
-    .leftJoin("appraisalLeads.lead", "lead")
-    .addSelect(["lead.id", "lead.name"]) 
+    .leftJoinAndSelect("appraisalLeads.lead", "lead") 
 
     .leftJoin("cycle.created_by", "created_by")
     .addSelect(["created_by.id"])
@@ -80,7 +79,8 @@ async countTeamAppraisalsToReview(leadId: number): Promise<number> {
     .createQueryBuilder("appraisal")
     .leftJoinAndSelect("appraisal.employee", "employee")
     .leftJoinAndSelect("appraisal.cycle", "cycle")
-    
+    .leftJoinAndSelect("appraisal.appraisalLeads", "appraisalLeads")
+    .leftJoinAndSelect("appraisalLeads.lead", "lead") 
     .leftJoin("cycle.created_by", "created_by")
     .addSelect("created_by.id")
     .leftJoinAndSelect("appraisal.self_appraisal", "self_appraisal")

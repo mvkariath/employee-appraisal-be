@@ -33,7 +33,10 @@ class AppraisalController {
       checkRole([EmployeeRole.HR]),
       this.updateAppraisalStatus.bind(this)
     );
-    router.get("/appraisal/employee/:id", this.getAppraisalByEmployeeId.bind(this));
+    router.get(
+      "/appraisal/employee/:id",
+      this.getAppraisalByEmployeeId.bind(this)
+    );
     router.delete(
       "/:id",
       checkRole([EmployeeRole.HR]),
@@ -92,17 +95,28 @@ class AppraisalController {
       const appraisals = await this.appraisalService.getPastAppraisals(
         Number(req.params.id)
       );
+      // console.log(appraisals);
+
       const filtered = appraisals.map((appraisal) => {
+        // console.dir(appraisal.appraisalLeads, { depth: null });
+
         return {
           id: appraisal.id,
           cycle_name: appraisal.cycle.name,
           employee_name: appraisal.employee.name,
           startDate: appraisal.cycle.start_date,
           endDate: appraisal.cycle.end_date,
-          current_status: appraisal.cycle.status,
+          cycle_status: appraisal.cycle.status,
+          appraisal_status: appraisal.current_status,
           idp: appraisal.idp,
           performance_factors: appraisal.performance_factors,
           self_appraisal: appraisal.self_appraisal,
+          created_by: appraisal.cycle.created_by,
+          closed_at: appraisal.closed_at,
+          appraisalLeads: appraisal.appraisalLeads.map((al) => ({
+            id: al.lead.id,
+            name: al.lead.name,
+          })),
         };
       });
       res.status(200).json(filtered);
@@ -153,15 +167,32 @@ class AppraisalController {
       next(error);
     }
   }
-  async getAppraisalByEmployeeId(req: Request, res: Response, next: NextFunction) {
+  async getAppraisalByEmployeeId(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const employeeId = Number(req.params.id);
-      if (isNaN(employeeId)) throw new HttpException(400, "Invalid employee ID");
+      if (isNaN(employeeId))
+        throw new HttpException(400, "Invalid employee ID");
       const appraisals = await this.appraisalService.getAppraisalByEmployeeId(
         employeeId
       );
-      res.status(200).json(appraisals);
-      console.log("HELLO");
+      // console.dir(appraisals, { depth: null });
+      const filtered = appraisals.map((appraisal) => ({
+        ...appraisal,
+        appraisalLeads:
+          appraisal.appraisalLeads?.map((al) => ({
+            id: al.lead?.id,
+            name: al.lead?.name,
+          })) || [],
+      }));
+
+      console.log(filtered);
+      res.status(200).json(filtered);
+
+      // console.log("HELLO");
     } catch (error) {
       this.logger.error("getAppraisalByEmployeeId - FAILED" + error);
       next(error);
