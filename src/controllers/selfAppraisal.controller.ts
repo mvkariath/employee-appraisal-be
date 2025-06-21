@@ -198,14 +198,14 @@ class SelfAppraisalEntryController {
             entry.appraisal.performance_factors.length > 0
         )
         .map((entry) => {
-          const employee = entry.appraisal.employee;
+          const {createdAt,updatedAt,deletedAt,password,...employee} = entry.appraisal.employee;
           const cycle = entry.appraisal.cycle;
           const appraisal = entry.appraisal;
 
         return {
           appraisalId:appraisal?.id,
-          name: employee?.name,
-          department: employee?.department,
+          appraisalStatus:appraisal?.current_status,
+          employee:employee,
           cycleName: cycle?.name,
           startDate: cycle?.start_date,
           endDate: cycle?.end_date
@@ -227,26 +227,25 @@ class SelfAppraisalEntryController {
     try {
       const appraisals =
         await this.selfAppraisalEntryService.findAllAppraisalsByLeadId(leadId);
-      //  this.logger.info(appraisals)
+       this.logger.info(appraisals)
       const filtered = appraisals
         .filter(
           (entry) =>
             entry.appraisal &&
             Array.isArray(entry.appraisal.performance_factors) &&
             entry.appraisal.performance_factors.length > 0 && 
-            entry.appraisal.current_status === Status.FEEDBACK_SUBMITTED &&
-            entry.appraisal.cycle.status !== CycleStatus.COMPLETED
+            entry.appraisal.current_status === Status.FEEDBACK_SUBMITTED 
+       
 
           )
         .map((entry) => {
-          const employee = entry.appraisal.employee;
+         const {createdAt,updatedAt,deletedAt,password,...employee} = entry.appraisal.employee;
           const cycle = entry.appraisal.cycle;
           const appraisal = entry.appraisal;
 
         return {
           appraisalId:appraisal?.id,
-          name: employee?.name,
-          department: employee?.department,
+          employee:employee,
           cycleName: cycle?.name,
           startDate: cycle?.start_date,
           endDate: cycle?.end_date

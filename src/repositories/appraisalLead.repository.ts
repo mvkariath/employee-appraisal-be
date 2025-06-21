@@ -1,6 +1,6 @@
 import { Repository } from "typeorm";
 import { AppraisalLead } from "../entities/AppraisalLead.entity";
-
+import { Status } from "../entities/AppraisalCycle.entity";
 class AppraisalLeadRepository {
   constructor(private repository: Repository<AppraisalLead>) {}
 
@@ -19,7 +19,13 @@ async findAllAppraisalsByLeadId(leadId: number): Promise<AppraisalLead[]> {
   return this.repository.find({
     where: {
       lead: { id: leadId },
-    },
+      appraisal:{
+        cycle:{
+          status:Status.IN_PROGRESS
+          
+
+      }
+    }},
     relations: [
       'appraisal',
             // ← property name is 'self_appraisal'
