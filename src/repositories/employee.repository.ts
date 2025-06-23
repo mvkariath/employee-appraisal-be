@@ -1,5 +1,5 @@
 import { Repository } from "typeorm";
-import Employee from "../entities/employee.entity";
+import Employee, { EmployeeRole } from "../entities/employee.entity";
 
 class EmployeeRepository {
     constructor(private repository: Repository<Employee>) { }
@@ -16,6 +16,11 @@ class EmployeeRepository {
         return this.repository.findOne({
             where: { id }
         });
+    }
+    async findByRole(givenRole:EmployeeRole):Promise<Employee[]>{
+        return this.repository.find({
+            where:{role:givenRole}
+        })
     }
 
     async findByEmail(email: string): Promise<Employee> {

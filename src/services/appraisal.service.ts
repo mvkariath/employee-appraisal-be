@@ -402,6 +402,7 @@ class AppraisalService {
       role,
       existing.current_status
     );
+    
     const sanitizedData = filterFieldsByRole(incomingData, allowedFields);
     this.logger.info("Sanitized Data:" + sanitizedData);
 

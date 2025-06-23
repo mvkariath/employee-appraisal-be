@@ -100,6 +100,10 @@ class EmployeeService {
             throw new httpException(400, `Employee with ID ${id} not found`);
         }
     }
+    async findByRole(role:EmployeeRole):Promise<Employee[]>{
+        return this.employeeRepository.findByRole(role)
+
+    }
 
     async removeEmployeeById(id: number): Promise<void> {
         this.logger.info(`removeEmployeeById - START: ID = ${id}`);

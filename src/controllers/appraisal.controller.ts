@@ -202,6 +202,7 @@ class AppraisalController {
   async updateAppraisal(req: Request, res: Response, next: NextFunction) {
     try {
       const id = Number(req.params.id);
+      console.log(req.body)
       if (isNaN(id)) throw new HttpException(400, "Invalid appraisal ID");
       const updated = await this.appraisalService.updateFormData(
         id,

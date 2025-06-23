@@ -16,9 +16,12 @@ class EmployeeController {
 
     constructor(private employeeService: EmployeeService, router: Router) {
         router.post("/",checkRole([EmployeeRole.HR]), this.createEmployee.bind(this));
+            router.get("/get-leads",this.findLeads.bind(this));
         router.get("/", this.getAllEmployees.bind(this));
+        
         router.get("/:id", this.getEmployeeById.bind(this));
         router.put("/:id", checkRole([EmployeeRole.HR]), auditLogMiddleware,this.updateEmployee.bind(this));
+    
         router.delete("/:id", checkRole([EmployeeRole.HR,EmployeeRole.DEVELOPER]), this.removeEmployee.bind(this));
     }
 
@@ -93,6 +96,15 @@ class EmployeeController {
             this.logger.error("employee updation failed" + error);
             next(error)
             
+        }
+    }
+    async findLeads(req:Request,res:Response,next:NextFunction){
+        try{
+            const leads=await this.employeeService.findByRole(EmployeeRole.LEAD)
+            res.status(200).send(leads)
+        }catch(error){
+            this.logger.error("cannot get the leads" + error);
+            next(error)
         }
     }
 
