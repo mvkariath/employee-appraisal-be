@@ -22,9 +22,7 @@ async findAllAppraisalsByLeadId(leadId: number): Promise<AppraisalLead[]> {
       appraisal:{
         cycle:{
            status: In([Status.IN_PROGRESS, Status.INITIATED]),
-          
-
-      }
+        }
     }},
     relations: [
       'appraisal',
