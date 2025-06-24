@@ -4,7 +4,7 @@ import { LoggerService } from "./logger.service";
 
 interface ChatbotRequestPayload {
   session_id: string;
-  role: "employee" | "lead";
+  role: "employee";
   message: string;
 }
 
@@ -42,6 +42,7 @@ class ChatbotService {
   public async forwardMessageToAI(
     payload: ChatbotRequestPayload
   ): Promise<FastApiResponse> {
+    payload.role = "employee"; // Ensure role is set to 'employee'
     this.logger.info(`Forwarding message for session: ${payload.session_id}`);
 
     const fastApiUrl = process.env.FASTAPI_CHATBOT_URL;
@@ -67,7 +68,7 @@ class ChatbotService {
           }): ${JSON.stringify(error.response.data)}`
         );
       } else {
-        this.logger.error("Error communicating with FastAPI backend: " + error);
+        this.logger.error(`Error communicating with FastAPI backend: ${error}`);
       }
       throw new httpException(
         502,
