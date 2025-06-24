@@ -1,4 +1,4 @@
-import { Repository } from "typeorm";
+import { Repository,In } from "typeorm";
 import { AppraisalLead } from "../entities/AppraisalLead.entity";
 import { Status } from "../entities/AppraisalCycle.entity";
 class AppraisalLeadRepository {
@@ -21,7 +21,7 @@ async findAllAppraisalsByLeadId(leadId: number): Promise<AppraisalLead[]> {
       lead: { id: leadId },
       appraisal:{
         cycle:{
-          status:Status.IN_PROGRESS
+           status: In([Status.IN_PROGRESS, Status.INITIATED]),
           
 
       }

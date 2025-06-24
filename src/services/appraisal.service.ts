@@ -330,7 +330,7 @@ class AppraisalService {
         throw new httpException(400, "Invalid status transition");
       }
     }
-    existing.current_status = request_status || existing.current_status;
+    existing.current_status = request_status ;
     await this.appraisalRepository.update(id, existing);
     this.logger.info(`Appraisal updated: ${id}`);
   }
@@ -424,6 +424,7 @@ class AppraisalService {
       //call the function to compute the new state and then change state
       //case -1 role is developer and then he submits his form
       if (role === "DEVELOPER" && current_status === Status.INITIATED) {
+        this.logger.info("Changing status to self-appraised")
         this.updateAppraisalStatus(appraisalId, Status.SELF_APPRAISED);
       }
       //case -2 role is lead and then he submits his form
